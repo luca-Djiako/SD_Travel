@@ -1,0 +1,255 @@
+{% extends 'base_admin.html' %}
+{% load static %}
+{% block title %}SD Admin — Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+  @keyframes fadeInUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+  .fade-in { animation: fadeInUp 0.5s ease-out both; }
+  .fade-in-1 { animation-delay: 0.05s; }
+  .fade-in-2 { animation-delay: 0.1s; }
+  .fade-in-3 { animation-delay: 0.15s; }
+  .fade-in-4 { animation-delay: 0.2s; }
+  .chart-card { animation-delay: 0.25s; }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+
+<div class="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center px-4 sm:px-margin-desktop pt-6 sm:pt-10 mb-stack-lg">
+  <div>
+    <h1 class="font-display-lg text-2xl sm:text-display-lg text-primary tracking-tight">Dashboard</h1>
+    <p class="text-on-surface-variant font-body-md mt-2 text-sm sm:text-base">Vue d'ensemble de l'activité SD Travel.</p>
+  </div>
+
+  <!-- Filtre période -->
+  <div class="flex gap-2 bg-surface-container-lowest p-1.5 rounded-full border border-outline-variant/30 self-start sm:self-auto overflow-x-auto max-w-full">
+    {% for val, label in periodes %}
+    <a href="?periode={{ val }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if tri != 'recent' %}&tri={{ tri }}{% endif %}"
+       class="px-4 py-2 rounded-full font-label-caps text-xs transition-all whitespace-nowrap {% if periode == val %}bg-primary-container text-white{% else %}text-on-surface-variant hover:bg-surface-container-high{% endif %}">
+      {{ label }}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="px-4 sm:px-margin-desktop pb-stack-lg space-y-6">
+
+  <!-- Stats -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-gutter">
+    <div class="fade-in fade-in-1 bg-surface-container-lowest p-4 sm:p-6 rounded-2xl shadow-[0_4px_20px_rgba(13,27,42,0.05)] border border-white">
+      <div class="flex items-center justify-between mb-3">
+        <i class="fa-solid fa-ticket text-secondary p-2 bg-secondary-fixed/20 rounded-lg"></i>
+      </div>
+      <p class="text-on-surface-variant font-label-caps text-xs">Réservations</p>
+      <p class="font-price-display text-xl sm:text-[28px] text-primary mt-1 counter" data-target="{{ total_reservations }}">0</p>
+    </div>
+    <div class="fade-in fade-in-2 bg-surface-container-lowest p-4 sm:p-6 rounded-2xl shadow-[0_4px_20px_rgba(13,27,42,0.05)] border border-white">
+      <div class="flex items-center justify-between mb-3">
+        <i class="fa-solid fa-sack-dollar text-green-600 p-2 bg-green-50 rounded-lg"></i>
+      </div>
+      <p class="text-on-surface-variant font-label-caps text-xs">Revenus Encaissés (FCFA)</p>
+      <p class="font-price-display text-xl sm:text-[28px] text-primary mt-1 counter" data-target="{{ revenus_mois|floatformat:0 }}">0</p>
+    </div>
+    <div class="fade-in fade-in-3 bg-surface-container-lowest p-4 sm:p-6 rounded-2xl shadow-[0_4px_20px_rgba(13,27,42,0.05)] border border-white">
+      <div class="flex items-center justify-between mb-3">
+        <i class="fa-solid fa-plane-departure text-secondary p-2 bg-secondary-fixed/20 rounded-lg"></i>
+      </div>
+      <p class="text-on-surface-variant font-label-caps text-xs">Vols Actifs</p>
+      <p class="font-price-display text-xl sm:text-[28px] text-primary mt-1 counter" data-target="{{ vols_actifs }}">0</p>
+    </div>
+    <div class="fade-in fade-in-4 bg-surface-container-lowest p-4 sm:p-6 rounded-2xl shadow-[0_4px_20px_rgba(13,27,42,0.05)] border border-white">
+      <div class="flex items-center justify-between mb-3">
+        <i class="fa-solid fa-user-plus text-blue-600 p-2 bg-blue-50 rounded-lg"></i>
+      </div>
+      <p class="text-on-surface-variant font-label-caps text-xs">Nouveaux Clients</p>
+      <p class="font-price-display text-xl sm:text-[28px] text-primary mt-1 counter" data-target="{{ nouveaux_users }}">0</p>
+    </div>
+  </div>
+
+  <!-- Graphiques -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
+    <div class="fade-in chart-card lg:col-span-2 bg-surface-container-lowest p-4 sm:p-6 rounded-2xl shadow-[0_4px_20px_rgba(13,27,42,0.05)] border border-white">
+      <p class="font-label-caps text-on-surface-variant text-xs uppercase mb-4">Évolution — Réservations & Revenus</p>
+      <div class="h-64 sm:h-80">
+        <canvas id="evolutionChart"></canvas>
+      </div>
+    </div>
+    <div class="fade-in chart-card bg-surface-container-lowest p-4 sm:p-6 rounded-2xl shadow-[0_4px_20px_rgba(13,27,42,0.05)] border border-white">
+      <p class="font-label-caps text-on-surface-variant text-xs uppercase mb-4">Répartition par Statut</p>
+      <div class="h-64 sm:h-80 flex items-center justify-center">
+        <canvas id="statutChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top destinations + Réservations récentes -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
+
+    <div class="fade-in bg-surface-container-lowest p-4 sm:p-6 rounded-2xl shadow-[0_4px_20px_rgba(13,27,42,0.05)] border border-white">
+      <p class="font-label-caps text-on-surface-variant text-xs uppercase mb-4">Top Destinations</p>
+      <div class="space-y-3">
+        {% for d in top_destinations %}
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2 min-w-0">
+            <i class="fa-solid fa-location-dot text-secondary text-xs shrink-0"></i>
+            <span class="font-body-md text-on-surface truncate">{{ d.vol__ville_arrivee }}</span>
+          </div>
+          <span class="font-price-display text-sm text-primary shrink-0 ml-2">{{ d.total }}</span>
+        </div>
+        {% empty %}
+        <p class="text-xs text-on-surface-variant">Aucune donnée pour cette période.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="fade-in lg:col-span-2 bg-surface-container-lowest rounded-2xl shadow-[0_4px_20px_rgba(13,27,42,0.05)] border border-white overflow-hidden">
+      <div class="p-4 sm:p-6 pb-0 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+        <p class="font-label-caps text-on-surface-variant text-xs uppercase">Réservations Récentes</p>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <form method="GET" class="relative">
+            <input type="hidden" name="periode" value="{{ periode }}">
+            {% if tri != 'recent' %}<input type="hidden" name="tri" value="{{ tri }}">{% endif %}
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-outline text-xs"></i>
+            <input name="q" value="{{ q }}" placeholder="Rechercher..."
+                   class="pl-8 pr-3 py-1.5 border border-outline-variant bg-surface-container-low rounded-lg text-xs outline-none focus:ring-2 focus:ring-secondary-container w-full sm:w-40">
+          </form>
+          <select onchange="window.location.href=this.value"
+                  class="px-3 py-1.5 border border-outline-variant rounded-lg text-xs bg-white outline-none">
+            <option value="?periode={{ periode }}{% if q %}&q={{ q|urlencode }}{% endif %}&tri=recent" {% if tri == 'recent' %}selected{% endif %}>Plus récentes</option>
+            <option value="?periode={{ periode }}{% if q %}&q={{ q|urlencode }}{% endif %}&tri=ancien" {% if tri == 'ancien' %}selected{% endif %}>Plus anciennes</option>
+            <option value="?periode={{ periode }}{% if q %}&q={{ q|urlencode }}{% endif %}&tri=montant" {% if tri == 'montant' %}selected{% endif %}>Montant décroissant</option>
+          </select>
+        </div>
+      </div>
+      <div class="overflow-x-auto mt-4">
+        <table class="w-full min-w-[560px] text-left">
+          <thead>
+            <tr class="border-b border-surface-container-high bg-surface-container-low">
+              <th class="px-4 sm:px-6 py-3 font-label-caps text-on-surface-variant text-xs">Réf</th>
+              <th class="px-4 sm:px-6 py-3 font-label-caps text-on-surface-variant text-xs">Client</th>
+              <th class="px-4 sm:px-6 py-3 font-label-caps text-on-surface-variant text-xs">Vol</th>
+              <th class="px-4 sm:px-6 py-3 font-label-caps text-on-surface-variant text-xs">Montant</th>
+              <th class="px-4 sm:px-6 py-3 font-label-caps text-on-surface-variant text-xs">Statut</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-surface-container-high">
+            {% for r in dernieres_reservations %}
+            <tr class="hover:bg-surface-container-low/50 transition-colors">
+              <td class="px-4 sm:px-6 py-3 font-label-caps text-primary text-xs whitespace-nowrap">#{{ r.reference }}</td>
+              <td class="px-4 sm:px-6 py-3 font-body-md text-on-surface text-sm truncate max-w-[140px]">{{ r.client.get_full_name }}</td>
+              <td class="px-4 sm:px-6 py-3 font-body-md text-on-surface-variant text-sm whitespace-nowrap">{{ r.vol.code_depart }} → {{ r.vol.code_arrivee }}</td>
+              <td class="px-4 sm:px-6 py-3 font-price-display text-primary text-sm whitespace-nowrap">{{ r.prix_total|floatformat:0 }} FCFA</td>
+              <td class="px-4 sm:px-6 py-3">
+                {% if r.statut == 'confirmee' %}
+                <span class="px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-[10px] font-label-caps whitespace-nowrap">CONFIRMÉE</span>
+                {% elif r.statut == 'billet_emis' %}
+                <span class="px-2 py-1 rounded-full bg-green-100 text-green-700 text-[10px] font-label-caps whitespace-nowrap">BILLET ÉMIS</span>
+                {% elif r.statut == 'en_attente' %}
+                <span class="px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-[10px] font-label-caps whitespace-nowrap">EN ATTENTE</span>
+                {% else %}
+                <span class="px-2 py-1 rounded-full bg-red-100 text-red-700 text-[10px] font-label-caps whitespace-nowrap">ANNULÉE</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="px-6 py-10 text-center text-on-surface-variant text-sm">Aucune réservation trouvée.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="p-4 sm:p-6 pt-3 text-right">
+        <a href="{% url 'admin_reservations' %}" class="text-xs font-label-caps text-secondary hover:underline">Voir toutes les réservations →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  // ── Animation compteurs ──
+  document.querySelectorAll('.counter').forEach(el => {
+    const target = parseFloat(el.dataset.target) || 0;
+    const duration = 900;
+    const start = performance.now();
+    function tick(now) {
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const value = Math.floor(eased * target);
+      el.textContent = value.toLocaleString('fr-FR');
+      if (progress < 1) requestAnimationFrame(tick);
+      else el.textContent = target.toLocaleString('fr-FR');
+    }
+    requestAnimationFrame(tick);
+  });
+
+  // ── Données injectées par Django ──
+  const chartLabels       = {{ chart_labels|safe }};
+  const chartReservations = {{ chart_reservations|safe }};
+  const chartRevenus      = {{ chart_revenus|safe }};
+  const statutLabels      = {{ statut_labels|safe }};
+  const statutData        = {{ statut_data|safe }};
+
+  // ── Graphique évolution (ligne double axe) ──
+  new Chart(document.getElementById('evolutionChart'), {
+    type: 'line',
+    data: {
+      labels: chartLabels,
+      datasets: [
+        {
+          label: 'Réservations',
+          data: chartReservations,
+          borderColor: '#1E3050',
+          backgroundColor: 'rgba(30,48,80,0.08)',
+          tension: 0.35,
+          fill: true,
+          yAxisID: 'y',
+        },
+        {
+          label: 'Revenus (FCFA)',
+          data: chartRevenus,
+          borderColor: '#E2A829',
+          backgroundColor: 'rgba(226,168,41,0.08)',
+          tension: 0.35,
+          fill: true,
+          yAxisID: 'y1',
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 800, easing: 'easeOutCubic' },
+      interaction: { mode: 'index', intersect: false },
+      scales: {
+        y:  { position: 'left',  beginAtZero: true, title: { display: true, text: 'Réservations' } },
+        y1: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: 'FCFA' } },
+      },
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+
+  // ── Graphique répartition statuts (donut) ──
+  new Chart(document.getElementById('statutChart'), {
+    type: 'doughnut',
+    data: {
+      labels: statutLabels,
+      datasets: [{
+        data: statutData,
+        backgroundColor: ['#E2A829', '#1E3050', '#22C55E', '#EF4444'],
+        borderWidth: 2,
+        borderColor: '#fff',
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 800, easing: 'easeOutCubic' },
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } }
+    }
+  });
+</script>
+{% endblock %}

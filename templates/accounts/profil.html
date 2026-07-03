@@ -1,0 +1,599 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}SD Travel — Mon Profil{% endblock %}
+
+{% block extra_css %}
+<style>
+  .input-profile {
+    width: 100%;
+    padding: 0.8rem 1rem 0.8rem 2.75rem;
+    background: #f2f4f7;
+    border: 1.5px solid transparent;
+    border-radius: 0.75rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    color: #191c1e;
+    outline: none;
+    transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  }
+  .input-profile:focus {
+    background: #fff;
+    border-color: #fcbf40;
+    box-shadow: 0 0 0 3px rgba(252,191,64,0.15);
+  }
+  .input-profile:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .tab-btn {
+    padding: 0.6rem 1.25rem;
+    border-radius: 0.5rem;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s ease, color 0.2s ease;
+    background: transparent;
+    color: #44474c;
+  }
+  .tab-btn.active {
+    background: #fff;
+    color: #191c1e;
+    box-shadow: 0 2px 8px rgba(13,27,42,0.08);
+  }
+
+  .section-card {
+    background: #fff;
+    border-radius: 1.25rem;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(13,27,42,0.05);
+    border: 1px solid #e0e3e6;
+  }
+
+  /* ── Reveal au scroll ─────────────────────────────────────── */
+  .fade-up {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity .65s ease, transform .65s ease;
+  }
+  .fade-up.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── Entrée immédiate du header (au-dessus de la ligne de flottaison) ── */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .fade-in-hero { opacity: 0; animation: fadeInUp .6s ease both; }
+
+  /* ── Transition douce au changement d'onglet ─────────────── */
+  .tab-panel-anim { animation: fadeInUp .35s ease both; }
+
+  /* ── Avatar : léger anneau qui pulse ─────────────────────── */
+  @keyframes ringPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,222,166,0.35); }
+    50%      { box-shadow: 0 0 0 8px rgba(255,222,166,0); }
+  }
+  .avatar-ring { animation: ringPulse 2.6s ease-in-out infinite; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fade-up, .fade-in-hero, .tab-panel-anim, .avatar-ring {
+      animation: none !important;
+      transition: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="bg-primary-container py-10" style="margin-bottom: 2.5rem;">
+  <div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+
+    <div class="flex items-center gap-5 fade-in-hero">
+      <!-- Avatar -->
+      <div class="relative">
+        <div class="avatar-ring w-20 h-20 rounded-full bg-secondary-fixed/20 border-4 border-secondary-fixed/30 flex items-center justify-center text-secondary-fixed font-display-lg text-2xl font-bold">
+          {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+        </div>
+        <button class="absolute bottom-0 right-0 w-7 h-7 bg-secondary-container rounded-full flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-transform">
+          <i class="fa-solid fa-edit text-[14px] text-on-secondary-container"></i>
+        </button>
+      </div>
+
+      <div>
+        <h1 class="font-display-lg text-display-lg-mobile text-white">
+          {{ user.get_full_name|default:user.username }}
+        </h1>
+        <p class="font-label-caps text-[10px] text-on-primary-container mt-1">
+          MEMBRE DEPUIS {{ user.date_joined|date:"F Y" }}
+        </p>
+        <!-- Badge statut -->
+        <span class="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full bg-secondary-fixed/10 text-secondary-fixed font-label-caps text-[10px]">
+          <i class="fa-solid fa-star text-[14px]"></i>
+          Membre Standard
+        </span>
+      </div>
+    </div>
+
+    <a href="{% url 'liste_vols' %}"
+       class="flex items-center justify-center gap-2 bg-secondary-container text-on-secondary-fixed font-label-caps text-label-caps px-6 py-3 rounded-xl hover:bg-secondary-fixed active:scale-95 transition-all w-full md:w-auto fade-in-hero"
+       style="text-decoration:none; animation-delay:.1s;">
+      <i class="fa-solid fa-plane-departure text-[18px]"></i>
+      Réserver un vol
+    </a>
+
+  </div>
+</div>
+
+<!-- Contenu -->
+<div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-stack-lg" style="margin-bottom: 2rem;">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+    <!-- ── Colonne gauche : stats + nav ─────────────────────── -->
+    <aside class="lg:col-span-3 grid gap-5">
+
+      <!-- Stats rapides -->
+      <div class="section-card fade-up">
+        <h3 class="font-label-caps text-label-caps text-on-surface-variant mb-4">MES STATISTIQUES</h3>
+        <div class="space-y-4">
+          <div class="flex justify-between items-center">
+            <div class="flex items-center gap-2 text-on-surface-variant">
+              <i class="fa-solid fa-plane-departure text-[18px]"></i>
+              <span class="font-body-md text-sm">Vols effectués</span>
+            </div>
+            <span class="font-price-display text-primary font-bold">
+              <span class="count-up" data-target="{{ stats.total_vols|default:0 }}">0</span>
+            </span>
+          </div>
+          <div class="flex justify-between items-center">
+            <div class="flex items-center gap-2 text-on-surface-variant">
+              <i class="fa-solid fa-id-card text-[18px]"></i>
+              <span class="font-body-md text-sm">Réservations</span>
+            </div>
+            <span class="font-price-display text-primary font-bold">
+              <span class="count-up" data-target="{{ stats.total_reservations|default:0 }}">0</span>
+            </span>
+          </div>
+          <div class="flex justify-between items-center">
+            <div class="flex items-center gap-2 text-on-surface-variant">
+              <i class="fa-solid fa-wallet text-[18px]"></i>
+              <span class="font-body-md text-sm">Total dépensé</span>
+            </div>
+            <span class="font-price-display text-secondary font-bold text-sm">
+              <span class="count-up" data-target="{{ stats.total_depense|default:0|floatformat:0 }}">0</span> F
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation tabs : verticale sur desktop, pills scrollables sur mobile -->
+      <div class="section-card fade-up" style="transition-delay:80ms;">
+        <nav class="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1 md:flex-col md:space-y-1 md:overflow-visible md:mx-0 md:px-0 md:pb-0">
+          <button onclick="showTab('infos')" id="tab-infos"
+                  class="tab-btn active shrink-0 whitespace-nowrap md:w-full text-left flex items-center gap-3">
+            <i class="fa-solid fa-user text-[18px]"></i> Informations
+          </button>
+          <button onclick="showTab('securite')" id="tab-securite"
+                  class="tab-btn shrink-0 whitespace-nowrap md:w-full text-left flex items-center gap-3">
+            <i class="fa-solid fa-lock text-[18px]"></i> Sécurité
+          </button>
+          <button onclick="showTab('preferences')" id="tab-preferences"
+                  class="tab-btn shrink-0 whitespace-nowrap md:w-full text-left flex items-center gap-3">
+            <i class="fa-solid fa-sliders text-[18px]"></i> Préférences
+          </button>
+          <button onclick="showTab('notifications')" id="tab-notifications"
+                  class="tab-btn shrink-0 whitespace-nowrap md:w-full text-left flex items-center gap-3">
+            <i class="fa-solid fa-bell text-[18px]"></i> Notifications
+          </button>
+        </nav>
+
+        <hr class="my-4 border-surface-container">
+
+        <a href="{% url 'dashboard' %}"
+           class="flex items-center gap-3 text-on-surface-variant hover:text-primary transition-colors font-body-md text-sm"
+           style="text-decoration:none;">
+          <i class="fa-solid fa-tachometer-alt text-[18px]"></i>
+          Mes réservations
+        </a>
+      </div>
+
+    </aside>
+
+    <!-- ── Colonne droite : formulaires ─────────────────────── -->
+    <div class="lg:col-span-9 space-y-gutter">
+
+      <!-- Messages Django -->
+      {% if messages %}
+      <div class="space-y-3 fade-up">
+        {% for message in messages %}
+        <div class="flex items-center gap-3 p-4 rounded-xl
+          {% if message.tags == 'success' %}bg-green-50 text-green-700 border border-green-200
+          {% elif message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200
+          {% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
+          <i class="fa-solid {% if message.tags == 'success' %}fa-circle-check{% elif message.tags == 'error' %}fa-circle-exclamation{% else %}fa-circle-info{% endif %} text-[16px]"></i>
+          <span>{{ message }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- ── TAB: Informations personnelles ────────────────── -->
+      <div id="panel-infos" class="fade-up" style="transition-delay:120ms;">
+        <div class="section-card">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="font-headline-md text-headline-md text-primary" style="font-size:1.15rem;">Informations Personnelles</h2>
+            <button onclick="toggleEdit('infos-form')" id="edit-btn-infos"
+                    class="flex items-center gap-1.5 font-label-caps text-label-caps text-secondary hover:text-on-secondary-fixed transition-colors">
+              <i class="fa-solid fa-edit text-[16px]"></i>
+            </button>
+          </div>
+
+          <form method="POST" action="{% url 'profil' %}" id="infos-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_infos">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+              <div class="space-y-1.5">
+                <label class="font-label-caps text-label-caps text-on-surface-variant block ml-1">PRÉNOM</label>
+                <div class="relative ">
+                  <i class="fa-solid fa-user absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[19px]" style="margin-right: 12px;"></i>
+                  <input name="first_name" type="text" value="       {{user.first_name }}"
+                         class="input-profile" disabled >
+                </div>
+              </div>
+
+              <div class="space-y-1.5">
+                <label class="font-label-caps text-label-caps text-on-surface-variant block ml-1">NOM</label>
+                <div class="relative">
+                  <i class="fa-solid fa-id-badge absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[19px]"></i>
+                  <input name="last_name" type="text" value="       {{ user.last_name }}"
+                         class="input-profile" disabled>
+                </div>
+              </div>
+
+              <div class="space-y-1.5 sm:col-span-2">
+                <label class="font-label-caps text-label-caps text-on-surface-variant block ml-1">EMAIL</label>
+                <div class="relative">
+                  <i class="fa-solid fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[19px]"></i>
+                  <input name="email" type="email" value="{{ user.email }}"
+                         class="input-profile" disabled style="padding-left: 2.75rem;">
+                </div>
+              </div>
+
+              <div class="space-y-1.5">
+                <label class="font-label-caps text-label-caps text-on-surface-variant block ml-1">TÉLÉPHONE</label>
+                <div class="relative">
+                  <i class="fa-solid fa-phone absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[19px]"></i>
+                  <input name="telephone" type="tel" value="      {{ user.telephone|default:'' }}"
+                         placeholder="Entrer votre numéro de téléphone"
+                         class="input-profile" disabled>
+                </div>
+              </div>
+
+              <div class="space-y-1.5">
+                <label class="font-label-caps text-label-caps text-on-surface-variant block ml-1">NATIONALITÉ</label>
+                <div class="relative gap-2">
+                  <i class="fa-solid fa-flag absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[19px]"></i>
+                  <input name="nationalite" type="text" value="{{ user.nationalite|default:'' }}"
+                         placeholder="Camerounaise"
+                         class="input-profile" disabled style="padding-left: 2.75rem;">
+                </div>
+              </div>
+
+              <div class="space-y-1.5 sm:col-span-2">
+                <label class="font-label-caps text-label-caps text-on-surface-variant block ml-1">N° PASSEPORT</label>
+                <div class="relative">
+                  <i class="fa-solid fa-travel-book absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[19px]"></i>
+                  <input name="passeport" type="text" value="{{ user.passeport|default:'' }}"
+                         placeholder="XX000000"
+                         class="input-profile" >
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Boutons action (cachés par défaut) -->
+            <div class="hidden mt-6 flex flex-col sm:flex-row gap-3" id="infos-actions">
+              <button type="submit"
+                      class="flex-1 bg-primary-container text-white font-label-caps text-label-caps py-3 rounded-xl hover:bg-black active:scale-95 transition-all flex items-center justify-center gap-2">
+                <i class="fa-solid fa-save text-[18px]"></i>
+                Enregistrer
+              </button>
+              <button type="button" onclick="toggleEdit('infos-form')"
+                      class="px-6 py-3 border border-outline-variant text-on-surface-variant font-label-caps rounded-xl hover:bg-surface-container active:scale-95 transition-all">
+                Annuler
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ── TAB: Sécurité ─────────────────────────────────── -->
+      <div id="panel-securite" class="hidden">
+        <div class="section-card">
+          <h2 class="font-headline-md text-primary mb-6" style="font-size:1.15rem;">Sécurité du Compte</h2>
+
+          <form method="POST" action="{% url 'profil' %}" class="space-y-5">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="change_password">
+
+            <div class="space-y-1.5">
+              <label class="font-label-caps text-label-caps text-on-surface-variant block ml-1">MOT DE PASSE ACTUEL</label>
+              <div class="relative">
+                <i class="fa-solid fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[19px]"></i>
+                <input name="old_password" type="password" placeholder="••••••••" class="input-profile">
+              </div>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="font-label-caps text-label-caps text-on-surface-variant block ml-1">NOUVEAU MOT DE PASSE</label>
+              <div class="relative">
+                <i class="fa-solid fa-lock-reset absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[19px]"></i>
+                <input name="new_password1" type="password" placeholder="••••••••" class="input-profile">
+              </div>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="font-label-caps text-label-caps text-on-surface-variant block ml-1">CONFIRMER LE NOUVEAU MOT DE PASSE</label>
+              <div class="relative">
+                <i class="fa-solid fa-verified absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[19px]"></i>
+                <input name="new_password2" type="password" placeholder="••••••••" class="input-profile">
+              </div>
+            </div>
+
+            <button type="submit"
+                    class="w-full bg-primary-container text-white font-label-caps text-label-caps py-3 rounded-xl hover:bg-black active:scale-95 transition-all flex items-center justify-center gap-2">
+              <i class="fa-solid fa-lock text-[18px]"></i>
+              Mettre à jour le mot de passe
+            </button>
+          </form>
+
+          <!-- Danger Zone -->
+          <div class="mt-8 pt-6 border-t border-surface-container" style="border-color: rgba(243,46,16,0.12);">
+            <h3 class="font-label-caps text-label-caps text-error mb-3">ZONE DANGEREUSE</h3>
+
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl"
+                 style="background: rgba(243,46,16,0.06); border: 1px solid rgba(243,46,16,0.18);">
+              <div>
+                <p class="font-bold text-sm text-on-surface">Supprimer mon compte</p>
+                <p class="text-xs text-on-surface-variant mt-0.5">Cette action est irréversible.</p>
+              </div>
+              <button class="font-label-caps text-label-caps text-error border border-error px-4 py-2 rounded-lg hover:bg-error hover:text-white active:scale-95 transition-all text-[11px] shrink-0" style="text-decoration:none;">
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TAB: Préférences ──────────────────────────────── -->
+      <div id="panel-preferences" class="hidden">
+        <div class="section-card">
+          <h2 class="font-headline-md text-primary mb-6" style="font-size:1.15rem;">Préférences de Voyage</h2>
+
+          <form method="POST" action="{% url 'profil' %}" class="space-y-5">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_preferences">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+              <div class="space-y-1.5">
+                <label class="font-label-caps text-label-caps text-on-surface-variant block ml-1">CLASSE PRÉFÉRÉE</label>
+                <select name="classe_preferee" class="input-profile pl-4">
+                  <option value="eco" {% if user.classe_preferee == 'eco' %}selected{% endif %}>Économie</option>
+                  <option value="business" {% if user.classe_preferee == 'business' %}selected{% endif %}>Affaires</option>
+                  <option value="first" {% if user.classe_preferee == 'first' %}selected{% endif %}>Première</option>
+                </select>
+              </div>
+
+              <div class="space-y-1.5">
+                <label class="font-label-caps text-label-caps text-on-surface-variant block ml-1">REPAS</label>
+                <select name="regime_alimentaire" class="input-profile pl-4">
+                  <option value="standard">Standard</option>
+                  <option value="vegetarien">Végétarien</option>
+                  <option value="halal">Halal</option>
+                  <option value="sans_gluten">Sans gluten</option>
+                </select>
+              </div>
+
+              <div class="space-y-1.5">
+                <label class="font-label-caps text-label-caps text-on-surface-variant block ml-1">PLACEMENT SIÈGE</label>
+                <select name="preference_siege" class="input-profile pl-4">
+                  <option value="hublot">Côté hublot</option>
+                  <option value="couloir">Côté couloir</option>
+                  <option value="indifferent">Indifférent</option>
+                </select>
+              </div>
+
+              <div class="space-y-1.5">
+                <label class="font-label-caps text-label-caps text-on-surface-variant block ml-1">DEVISE</label>
+                <select name="devise" class="input-profile pl-4">
+                  <option value="XAF">FCFA (XAF)</option>
+                  <option value="EUR">Euro (EUR)</option>
+                  <option value="USD">Dollar (USD)</option>
+                </select>
+              </div>
+
+            </div>
+
+            <button type="submit"
+                    class="w-full bg-primary-container text-white font-label-caps text-label-caps py-3 rounded-xl hover:bg-black active:scale-95 transition-all flex items-center justify-center gap-2 mt-2">
+              <i class="fa-solid fa-save text-[18px]"></i>
+              Enregistrer les préférences
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- ── TAB: Notifications ────────────────────────────── -->
+      <div id="panel-notifications" class="hidden">
+        <div class="section-card">
+          <h2 class="font-headline-md text-primary mb-6" style="font-size:1.15rem;">Préférences de Notifications</h2>
+
+          <form method="POST" action="{% url 'profil' %}" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_notifications">
+
+            {% for item in notifications_options %}
+            <label class="flex items-center justify-between p-4 rounded-xl border border-surface-container hover:bg-surface-container-low transition-colors cursor-pointer">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-on-surface-variant text-[20px]">{{ item.icon }}</span>
+                <div>
+                  <p class="font-body-md font-medium text-on-surface">{{ item.label }}</p>
+                  <p class="text-xs text-on-surface-variant">{{ item.description }}</p>
+                </div>
+              </div>
+              <input type="checkbox" name="{{ item.name }}"
+                     {% if item.checked %}checked{% endif %}
+                     class="w-4 h-4 rounded accent-secondary">
+            </label>
+            {% empty %}
+            <label class="flex items-center justify-between p-4 rounded-xl border border-surface-container hover:bg-surface-container-low transition-colors cursor-pointer">
+              <div class="flex items-center gap-3">
+                <i class="fa-solid fa-envelope text-on-surface-variant text-[20px]"></i>
+                <div>
+                  <p class="font-body-md font-medium text-on-surface">Confirmation de réservation</p>
+                  <p class="text-xs text-on-surface-variant">Recevoir un email à chaque réservation</p>
+                </div>
+              </div>
+              <input type="checkbox" name="notif_reservation" checked class="w-4 h-4 rounded accent-secondary">
+            </label>
+            <label class="flex items-center justify-between p-4 rounded-xl border border-surface-container hover:bg-surface-container-low transition-colors cursor-pointer">
+              <div class="flex items-center gap-3">
+                <i class="fa-solid fa-plane-departure text-on-surface-variant text-[20px]"></i>
+                <div>
+                  <p class="font-body-md font-medium text-on-surface">Rappel de vol</p>
+                  <p class="text-xs text-on-surface-variant">24h avant le départ</p>
+                </div>
+              </div>
+              <input type="checkbox" name="notif_rappel" checked class="w-4 h-4 rounded accent-secondary">
+            </label>
+            <label class="flex items-center justify-between p-4 rounded-xl border border-surface-container hover:bg-surface-container-low transition-colors cursor-pointer">
+              <div class="flex items-center gap-3">
+                <i class="fa-solid fa-tag text-on-surface-variant text-[20px]"></i>
+                <div>
+                  <p class="font-body-md font-medium text-on-surface">Offres promotionnelles</p>
+                  <p class="text-xs text-on-surface-variant">Tarifs exclusifs et réductions</p>
+                </div>
+              </div>
+              <input type="checkbox" name="notif_promo" class="w-4 h-4 rounded accent-secondary">
+            </label>
+            {% endfor %}
+
+            <button type="submit"
+                    class="w-full bg-primary-container text-white font-label-caps text-label-caps py-3 rounded-xl hover:bg-black active:scale-95 transition-all flex items-center justify-center gap-2 mt-2">
+              <i class="fa-solid fa-save text-[18px]"></i>
+              Enregistrer
+            </button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  /* ── Navigation par tabs ─────────────────────────────────── */
+  const tabs = ['infos', 'securite', 'preferences', 'notifications'];
+
+  function showTab(name) {
+    tabs.forEach(t => {
+      document.getElementById('panel-' + t).classList.add('hidden');
+      document.getElementById('tab-' + t).classList.remove('active');
+    });
+    const panel = document.getElementById('panel-' + name);
+    panel.classList.remove('hidden');
+
+    // Rejoue une légère animation d'entrée à chaque changement d'onglet
+    panel.classList.remove('tab-panel-anim');
+    void panel.offsetWidth; // force le reflow pour relancer l'animation CSS
+    panel.classList.add('tab-panel-anim');
+
+    document.getElementById('tab-' + name).classList.add('active');
+  }
+
+  /* ── Toggle édition formulaire ───────────────────────────── */
+  function toggleEdit(formId) {
+    const form    = document.getElementById(formId);
+    const actions = document.getElementById(formId.replace('form','actions'));
+    const editBtn = document.getElementById('edit-btn-' + formId.replace('-form',''));
+    const inputs  = form.querySelectorAll('input, select, textarea');
+    const isDisabled = inputs[0]?.disabled;
+
+    inputs.forEach(input => { input.disabled = !isDisabled; });
+
+    if (actions) {
+      if (isDisabled) {
+        actions.classList.remove('hidden');
+        actions.classList.add('flex');
+      } else {
+        actions.classList.add('hidden');
+        actions.classList.remove('flex');
+        inputs.forEach(input => { input.disabled = true; });
+      }
+    }
+
+    if (editBtn) {
+      editBtn.innerHTML = isDisabled
+        ? '<i class="fa-solid fa-x" style="color: rgb(145, 117, 14);"></i> Annuler'
+        : '<i class="fa-solid fa-edit text-[16px]"></i>';
+    }
+  }
+
+  /* ── Reveal au scroll + compteurs animés ─────────────────── */
+  (function () {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function animateCount(el) {
+      const target = parseFloat(el.dataset.target) || 0;
+      if (prefersReducedMotion) {
+        el.textContent = Math.round(target).toLocaleString('fr-FR');
+        return;
+      }
+      const duration = 1100;
+      const start = performance.now();
+      function tick(now) {
+        const progress = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.round(target * eased).toLocaleString('fr-FR');
+        if (progress < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    const revealEls = document.querySelectorAll('.fade-up');
+    if (prefersReducedMotion || !('IntersectionObserver' in window)) {
+      revealEls.forEach(el => {
+        el.classList.add('visible');
+        el.querySelectorAll('.count-up').forEach(animateCount);
+      });
+    } else {
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            entry.target.querySelectorAll('.count-up').forEach(animateCount);
+            io.unobserve(entry.target);
+          }
+        });
+      }, { threshold: .12 });
+      revealEls.forEach(el => io.observe(el));
+    }
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,246 @@
+{% extends 'base_admin.html' %}
+{% load static %}
+{% block title %}SD Admin — Utilisateurs{% endblock %}
+
+{% block extra_css %}
+<style>
+  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  .fade-in { animation: fadeIn 0.4s ease-out both; }
+  .modal-enter { opacity:0; transform:scale(0.95); }
+  .modal-active { opacity:1; transform:scale(1); transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1); }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+
+<div class="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center px-4 sm:px-margin-desktop pt-6 sm:pt-10 mb-stack-lg">
+  <div>
+    <h1 class="font-display-lg text-2xl sm:text-display-lg text-primary tracking-tight">Gestion des Utilisateurs</h1>
+    <p class="text-on-surface-variant font-body-md mt-2 text-sm sm:text-base">
+      <strong class="text-primary">{{ utilisateurs|length }}</strong> client{{ utilisateurs|length|pluralize }} enregistré{{ utilisateurs|length|pluralize }}
+    </p>
+  </div>
+</div>
+
+<div class="px-4 sm:px-margin-desktop pb-stack-lg space-y-6">
+
+  {% if messages %}
+  <div class="space-y-2">
+    {% for message in messages %}
+    <div class="px-4 py-3 rounded-xl text-sm font-medium
+      {% if message.tags == 'success' %}bg-green-100 text-green-800
+      {% elif message.tags == 'error' %}bg-red-100 text-red-800
+      {% else %}bg-blue-100 text-blue-800{% endif %}">
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Recherche -->
+  <form method="GET" class="relative w-full sm:w-96">
+    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-outline"></i>
+    <input name="q" value="{{ q }}"
+           class="w-full pl-10 pr-4 py-3 border border-outline-variant bg-surface-container-low rounded-xl focus:ring-2 focus:ring-secondary-container outline-none font-body-md text-sm"
+           placeholder="Rechercher un nom, un email, un téléphone..." type="text">
+  </form>
+
+  <!-- Tableau -->
+  <div class="bg-white rounded-3xl shadow-[0_4px_20px_rgba(13,27,42,0.05)] overflow-hidden border border-outline-variant/20">
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[760px] text-left border-collapse">
+        <thead>
+          <tr class="bg-surface-container-low text-on-surface-variant border-b border-outline-variant/30">
+            <th class="px-4 sm:px-6 py-4 font-label-caps text-xs uppercase tracking-widest whitespace-nowrap">Utilisateur</th>
+            <th class="px-4 sm:px-6 py-4 font-label-caps text-xs uppercase tracking-widest whitespace-nowrap">Téléphone</th>
+            <th class="px-4 sm:px-6 py-4 font-label-caps text-xs uppercase tracking-widest whitespace-nowrap">Rôle</th>
+            <th class="px-4 sm:px-6 py-4 font-label-caps text-xs uppercase tracking-widest whitespace-nowrap">Compte créé le</th>
+            <th class="px-4 sm:px-6 py-4 font-label-caps text-xs uppercase tracking-widest text-right whitespace-nowrap">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-surface-container">
+          {% for user in utilisateurs %}
+          <tr class="hover:bg-surface-container-low/50 transition-colors fade-in">
+            <td class="px-4 sm:px-6 py-4">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 shrink-0 rounded-full bg-secondary-fixed-dim flex items-center justify-center font-bold text-primary-container text-xs">
+                  {{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}
+                </div>
+                <div class="min-w-0">
+                  <p class="font-body-md font-bold text-on-surface truncate">{{ user.first_name }} {{ user.last_name }}</p>
+                  <p class="text-xs text-on-surface-variant truncate">{{ user.email }}</p>
+                </div>
+              </div>
+            </td>
+            <td class="px-4 sm:px-6 py-4 text-sm text-on-surface-variant whitespace-nowrap">{{ user.telephone|default:"—" }}</td>
+            <td class="px-4 sm:px-6 py-4 whitespace-nowrap">
+              <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
+                {% if user.role == 'admin' %}bg-orange-100 text-orange-700{% else %}bg-green-100 text-green-700{% endif %}">
+                {{ user.get_role_display }}
+              </span>
+            </td>
+            <td class="px-4 sm:px-6 py-4 text-sm text-on-surface-variant whitespace-nowrap">{{ user.date_creation|date:"d M Y" }}</td>
+            <td class="px-4 sm:px-6 py-4 text-right">
+              <div class="flex items-center justify-end gap-1">
+                <!-- Voir détails -->
+                <button type="button"
+                        onclick="openDetailModal('{{ user.first_name|escapejs }} {{ user.last_name|escapejs }}', '{{ user.email|escapejs }}', '{{ user.telephone|default:'—'|escapejs }}', '{{ user.get_role_display|escapejs }}', '{{ user.date_creation|date:"d M Y à H:i" }}', '{% if user.last_login %}{{ user.last_login|date:"d M Y à H:i" }}{% else %}Jamais connecté{% endif %}')"
+                        class="p-2 text-on-surface-variant hover:text-secondary hover:bg-secondary-fixed/10 rounded-lg transition-all" title="Voir détails">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+
+                <!-- Supprimer -->
+                {% if user.role == 'admin' or user.is_superuser %}
+                <span class="p-2 text-on-surface-variant/30 cursor-not-allowed" title="Protégé — impossible de supprimer un administrateur">
+                  <i class="fa-solid fa-shield-halved"></i>
+                </span>
+                {% else %}
+                <button type="button"
+                        data-delete-url="{% url 'admin_supprimer_utilisateur' user.id %}"
+                        onclick="openDeleteModal(this.dataset.deleteUrl, '{{ user.first_name|escapejs }} {{ user.last_name|escapejs }}')"
+                        class="p-2 text-on-surface-variant hover:text-error hover:bg-red-50 rounded-lg transition-all" title="Supprimer">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="px-6 py-16 text-center text-on-surface-variant">
+              <i class="fa-solid fa-user-slash text-4xl mb-4 block opacity-30"></i>
+              <p class="font-label-caps text-sm">Aucun utilisateur trouvé</p>
+              {% if q %}<p class="text-xs mt-1">Essayez une autre recherche.</p>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL DÉTAILS ══ -->
+<div class="fixed inset-0 bg-primary-container/50 backdrop-blur-sm z-[100] hidden items-center justify-center p-0 sm:p-4" id="detail-modal">
+  <div class="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden modal-enter mt-auto sm:mt-0" id="detail-modal-card">
+    <div class="bg-primary-container p-6 text-white flex items-center gap-4">
+      <div class="w-12 h-12 shrink-0 rounded-full bg-secondary-fixed-dim flex items-center justify-center font-bold text-primary-container">
+        <i class="fa-solid fa-user text-lg"></i>
+      </div>
+      <div class="min-w-0">
+        <h3 id="detail-nom" class="font-headline-md truncate">—</h3>
+        <p class="text-on-primary-container text-xs opacity-80 uppercase tracking-widest font-label-caps">Fiche utilisateur</p>
+      </div>
+    </div>
+    <div class="p-6 space-y-4">
+      <div class="flex justify-between items-center py-2 border-b border-outline-variant/20">
+        <span class="text-xs font-label-caps text-on-surface-variant uppercase">Email</span>
+        <span id="detail-email" class="font-body-md text-on-surface text-right truncate ml-4">—</span>
+      </div>
+      <div class="flex justify-between items-center py-2 border-b border-outline-variant/20">
+        <span class="text-xs font-label-caps text-on-surface-variant uppercase">Téléphone</span>
+        <span id="detail-telephone" class="font-body-md text-on-surface">—</span>
+      </div>
+      <div class="flex justify-between items-center py-2 border-b border-outline-variant/20">
+        <span class="text-xs font-label-caps text-on-surface-variant uppercase">Rôle</span>
+        <span id="detail-role" class="font-body-md text-on-surface">—</span>
+      </div>
+      <div class="flex justify-between items-center py-2 border-b border-outline-variant/20">
+        <span class="text-xs font-label-caps text-on-surface-variant uppercase">Compte créé le</span>
+        <span id="detail-date" class="font-body-md text-on-surface text-right">—</span>
+      </div>
+      <div class="flex justify-between items-center py-2">
+        <span class="text-xs font-label-caps text-on-surface-variant uppercase">Dernière connexion</span>
+        <span id="detail-derniere-connexion" class="font-body-md text-on-surface text-right">—</span>
+      </div>
+    </div>
+    <div class="p-6 pt-0">
+      <button type="button" onclick="closeDetailModal()"
+              class="w-full py-3 rounded-xl border border-outline-variant text-on-surface-variant font-label-caps hover:bg-surface-container transition-colors">
+        Fermer
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL SUPPRESSION ══ -->
+<div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] hidden items-center justify-center p-4" id="delete-modal">
+  <div class="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 max-w-sm w-full text-center modal-enter" id="delete-modal-card">
+    <i class="fa-solid fa-triangle-exclamation text-4xl text-error mb-4 block"></i>
+    <h3 class="font-headline-md text-lg mb-2">Supprimer cet utilisateur ?</h3>
+    <p class="text-on-surface-variant text-sm mb-6">
+      <strong id="delete-user-nom"></strong> sera définitivement supprimé — cette action est irréversible.
+    </p>
+    <div class="flex flex-col-reverse sm:flex-row gap-3">
+      <button type="button" onclick="closeDeleteModal()"
+              class="flex-1 border border-outline-variant text-on-surface-variant font-label-caps py-3 rounded-xl hover:bg-surface-container transition-colors">
+        Annuler
+      </button>
+      <form id="delete-form" method="POST" class="flex-1">
+        {% csrf_token %}
+        <button type="submit"
+                class="w-full bg-error text-white font-label-caps py-3 px-6 rounded-xl hover:opacity-90 transition-opacity">
+          Supprimer
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // ── Modal Détails ──
+  function openDetailModal(nom, email, telephone, role, date, derniereConnexion) {
+    document.getElementById('detail-nom').textContent   = nom;
+    document.getElementById('detail-email').textContent = email;
+    document.getElementById('detail-telephone').textContent = telephone;
+    document.getElementById('detail-role').textContent  = role;
+    document.getElementById('detail-date').textContent  = date;
+    document.getElementById('detail-derniere-connexion').textContent = derniereConnexion;
+
+    const modal = document.getElementById('detail-modal');
+    const card  = document.getElementById('detail-modal-card');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => { card.classList.remove('modal-enter'); card.classList.add('modal-active'); }, 10);
+  }
+
+  function closeDetailModal() {
+    const modal = document.getElementById('detail-modal');
+    const card  = document.getElementById('detail-modal-card');
+    card.classList.remove('modal-active');
+    card.classList.add('modal-enter');
+    setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 250);
+  }
+
+  document.getElementById('detail-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeDetailModal();
+  });
+
+  // ── Modal Suppression ──
+  function openDeleteModal(deleteUrl, nom) {
+    document.getElementById('delete-user-nom').textContent = nom;
+    document.getElementById('delete-form').action = deleteUrl;
+
+    const modal = document.getElementById('delete-modal');
+    const card  = document.getElementById('delete-modal-card');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => { card.classList.remove('modal-enter'); card.classList.add('modal-active'); }, 10);
+  }
+
+  function closeDeleteModal() {
+    const modal = document.getElementById('delete-modal');
+    const card  = document.getElementById('delete-modal-card');
+    card.classList.remove('modal-active');
+    card.classList.add('modal-enter');
+    setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 250);
+  }
+
+  document.getElementById('delete-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeDeleteModal();
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,274 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}SD Travel - Contactez l'Élite{% endblock %}
+
+{% block extra_css %}
+<style>
+  .form-input-gold:focus {
+    border-color: #E2A829;
+    box-shadow: 0 0 0 2px rgba(226,168,41,0.2);
+    outline: none;
+  }
+  .whatsapp-gradient { background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); }
+  .shimmer-btn:hover {
+    background: linear-gradient(110deg, #E2A829 45%, #f9bc3e 50%, #E2A829 55%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite linear;
+  }
+  @keyframes shimmer { from{background-position:100% 0} to{background-position:-100% 0} }
+
+  /* ============================================================
+     ANIMATIONS — page Contact
+     ============================================================ */
+
+  /* Entrée du titre au chargement (déjà visible à l'écran, pas besoin
+     d'un scroll-observer ici) */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .fade-in-hero {
+    opacity: 0;
+    animation: fadeInUp .7s ease both;
+  }
+
+  /* Reveal au scroll — même pattern que sur le reste du site
+     (page d'accueil) pour rester cohérent */
+  .fade-up {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity .75s ease, transform .75s ease;
+  }
+  .fade-up.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Lueur douce et respirante sur la card WhatsApp — c'est le CTA
+     prioritaire de la page, elle doit légèrement "vivre" */
+  @keyframes whatsappGlow {
+    0%, 100% { box-shadow: 0 10px 35px rgba(37,211,102,0.25); }
+    50%      { box-shadow: 0 10px 50px rgba(37,211,102,0.45); }
+  }
+  .whatsapp-gradient {
+    animation: whatsappGlow 3.5s ease-in-out infinite;
+  }
+
+  /* Icône décorative en fond de la card WhatsApp, qui flotte doucement */
+  @keyframes iconDrift {
+    0%, 100% { transform: translateY(0) rotate(12deg); }
+    50%      { transform: translateY(-8px) rotate(12deg); }
+  }
+  .whatsapp-deco-icon {
+    animation: iconDrift 6s ease-in-out infinite;
+  }
+
+  /* Icônes des coordonnées : léger zoom + rotation au survol de la ligne */
+  .contact-row-icon {
+    transition: transform .3s ease, background-color .3s ease;
+  }
+  .contact-row:hover .contact-row-icon {
+    transform: scale(1.12) rotate(-4deg);
+    background-color: rgba(226,168,41,0.22);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fade-in-hero, .fade-up, .whatsapp-gradient, .whatsapp-deco-icon {
+      animation: none !important;
+      transition: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-stack-lg" style="padding: 1rem;">
+
+  <!-- Titre -->
+  <div class="mb-stack-lg text-center md:text-left">
+    <h1 class="font-display-lg text-display-lg-mobile md:text-display-lg mb-4 fade-in-hero">Contactez l'Élite</h1>
+    <p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl fade-in-hero" style="animation-delay:.12s;">
+      Besoin d'un vol privé ou d'une assistance premium ? Notre équipe dédiée est à votre disposition 24/7.
+    </p>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+    <!-- Formulaire -->
+    <div class="lg:col-span-7">
+      <div class="bg-white p-8 rounded-xl shadow-[0_4px_20px_rgba(13,27,42,0.05)] border border-outline-variant/30 fade-up">
+        <form class="space-y-6" method="POST" action="{% url 'contact' %}">
+          {% csrf_token %}
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+            <div class="space-y-2">
+              <label class="font-label-caps text-label-caps text-on-surface-variant">NOM COMPLET</label>
+              <input class="w-full bg-surface-container-low border border-outline-variant p-4 rounded-lg form-input-gold transition-all"
+                     name="nom" placeholder="Ex: Jean Dupont" type="text" required>
+            </div>
+            <div class="space-y-2">
+              <label class="font-label-caps text-label-caps text-on-surface-variant">EMAIL</label>
+              <input class="w-full bg-surface-container-low border border-outline-variant p-4 rounded-lg form-input-gold transition-all"
+                     name="email" placeholder="jean.dupont@business.com" type="email" required>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <label class="font-label-caps text-label-caps text-on-surface-variant">SUJET</label>
+            <select class="w-full bg-surface-container-low border border-outline-variant p-4 rounded-lg form-input-gold transition-all" name="sujet">
+              <option>Réservation de Vol</option>
+              <option>Service Conciergerie</option>
+              <option>Support Client</option>
+              <option>Partenariats</option>
+            </select>
+          </div>
+
+          <div class="space-y-2">
+            <label class="font-label-caps text-label-caps text-on-surface-variant">MESSAGE</label>
+            <textarea class="w-full bg-surface-container-low border border-outline-variant p-4 rounded-lg form-input-gold transition-all"
+                      name="message" placeholder="Comment pouvons-nous vous assister aujourd'hui ?" rows="6" required></textarea>
+          </div>
+
+          <button class="w-full bg-primary-container text-white font-label-caps text-label-caps py-5 rounded-lg flex justify-center items-center gap-2 hover:bg-black transition-all active:scale-95 group shimmer-btn"
+                  type="submit">
+            Envoyer la demande
+            {% comment %} <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">send</span> {% endcomment %}
+            <i class="fa-solid fa-paper-plane group-hover:translate-x-1 transition-transform" style="color: rgb(255, 212, 59);"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Infos + Carte -->
+    <div class="lg:col-span-5 space-y-gutter">
+
+      <!-- WhatsApp Card -->
+      <div class="whatsapp-gradient p-8 rounded-xl text-white shadow-xl relative overflow-hidden group fade-up" style="transition-delay:80ms;">
+        <div class="relative z-10">
+          <div class="flex items-center gap-2 mb-4 bg-white/20 backdrop-blur-md w-fit px-3 py-1 rounded-full">
+            <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+            <span class="text-[10px] font-label-caps tracking-widest">RÉPONSE SOUS 2H SUR WHATSAPP</span>
+          </div>
+          <h3 class="font-headline-md text-headline-md mb-2">Support Prioritaire</h3>
+          <p class="text-white/80 font-body-md mb-6">Discutez en direct avec nos agents de voyage pour une réponse instantanée.</p>
+          <a class="bg-white text-on-secondary-fixed-variant px-6 py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95"
+             href="https://wa.me/237XXXXXXXXX?text=Bonjour%20SD%20Travel" target="_blank" rel="noopener">
+            {% comment %} <span class="material-symbols-outlined">chat</span> {% endcomment %}
+            <i class="fa-solid fa-comments"></i>
+
+            Démarrer la discussion
+          </a>
+        </div>
+        {% comment %} <span class="material-symbols-outlined absolute -bottom-6 -right-6 text-9xl text-white/10 rotate-12">forum</span> {% endcomment %}
+        <i class="fa-solid fa-comments whatsapp-deco-icon absolute -bottom-6 -right-6 text-9xl text-white/10 rotate-12"></i>
+      </div>
+
+      <!-- Coordonnées -->
+      <div class="bg-white p-8 rounded-xl shadow-[0_4px_20px_rgba(13,27,42,0.05)] border border-outline-variant/30 space-y-8 fade-up" style="transition-delay:160ms;">
+        <div class="flex gap-4 contact-row">
+          <div class="bg-secondary-fixed/30 w-12 h-12 rounded-lg flex items-center justify-center text-secondary shrink-0 contact-row-icon">
+            {% comment %} <span class="material-symbols-outlined">mail</span> {% endcomment %}
+            <i class="fa-solid fa-envelope"></i>
+          </div>
+          <div>
+            <p class="font-label-caps text-label-caps text-on-surface-variant mb-1">EMAIL DIRECT</p>
+            <a class="font-headline-md text-price-display text-on-surface hover:text-secondary transition-colors"
+               href="mailto:contact@sdtravel.cm">contact@sdtravel.cm</a>
+          </div>
+        </div>
+        <div class="flex gap-4 contact-row">
+          <div class="bg-secondary-fixed/30 w-12 h-12 rounded-lg flex items-center justify-center text-secondary shrink-0 contact-row-icon">
+            {% comment %} <span class="material-symbols-outlined">call</span> {% endcomment %}
+            <i class="fa-solid fa-phone"></i>
+          </div>
+          <div>
+            <p class="font-label-caps text-label-caps text-on-surface-variant mb-1">TÉLÉPHONE</p>
+            <p class="font-headline-md text-price-display text-on-surface">+237 600 000 000</p>
+          </div>
+        </div>
+        <div class="flex gap-4 contact-row">
+          <div class="bg-secondary-fixed/30 w-12 h-12 rounded-lg flex items-center justify-center text-secondary shrink-0 contact-row-icon">
+            {% comment %} <span class="material-symbols-outlined">location_on</span> {% endcomment %}
+            <i class="fa-solid fa-map-marker-alt"></i>
+          </div>
+          <div>
+            <p class="font-label-caps text-label-caps text-on-surface-variant mb-1">BUREAU DOUALA</p>
+            <p class="font-body-md text-on-surface">Boulevard de la Liberté, Akwa<br>Douala, Cameroun</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Carte -->
+      <div class="rounded-xl overflow-hidden shadow-lg h-64 relative border border-outline-variant/30 group fade-up" style="transition-delay:240ms;">
+        <img class="w-full h-full object-cover grayscale-[40%] group-hover:scale-105 transition-transform duration-700"
+             src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8w0NMsnxre7SuBGQe4msXi5xNGxz6wkkEVZjn-OpBflaJNBRm9eE1AxeNrK81zDH1dJXOO1nAoZpQ7O2XUqTrDfHqqjmPzsyGWn--nbJCl-Snq299oQJhDlxu4qkA6PIhRqEVOS9K0rE9bsmSq7-Evm9XXEE7cyjNYZ7kp-2G7CT4MVNQ2evapwTUv5jbg__v4U9VnWdJF6Sk7BCvISDzvztEIA_oP0QQBnPZ2UXwRMmC666Bqr6Ounj2EmtnJX8U99XzDjyNZ1v_"
+             alt="Carte Douala">
+        {# REPLACE: {% static 'img/map-douala.jpg' %} #}
+        <div class="absolute inset-0 bg-primary-container/20 flex items-center justify-center">
+          <div class="bg-white p-3 rounded-full shadow-2xl animate-bounce">
+            <i class="fa-solid fa-map-marker-alt text-secondary text-3xl"></i>
+          </div>
+        </div>
+        <a href="https://maps.google.com/?q=Akwa,Douala,Cameroun" target="_blank" rel="noopener"
+           class="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-lg border border-white/20 flex items-center gap-2 hover:bg-white transition-colors">
+          <i class="fa-solid fa-map-pin text-sm text-secondary"></i>
+          <span class="font-label-caps text-[10px] text-on-surface">VOIR SUR GOOGLE MAPS</span>
+        </a>
+      </div>
+
+      <!-- Réseaux sociaux -->
+      <div class="flex justify-between items-center bg-white p-6 rounded-xl border border-outline-variant/30 fade-up" style="transition-delay:320ms;">
+        <span class="font-label-caps text-label-caps text-on-surface-variant">RÉSEAUX SOCIAUX</span>
+        <div class="flex gap-4">
+          <a class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-secondary-fixed hover:text-on-secondary-fixed hover:scale-110 transition-all" href="#">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+          </a>
+          <a class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-secondary-fixed hover:text-on-secondary-fixed hover:scale-110 transition-all" href="#">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+          </a>
+          <a class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-secondary-fixed hover:text-on-secondary-fixed hover:scale-110 transition-all" href="#">
+            <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+
+  /* ── Label focus gold effect (déjà existant) ─────────────── */
+  document.querySelectorAll('input, textarea, select').forEach(input => {
+    input.addEventListener('focus', () => {
+      const label = input.closest('.space-y-2')?.querySelector('label');
+      if (label) { label.style.color = '#7c5800'; label.style.transform = 'translateY(-2px)'; }
+    });
+    input.addEventListener('blur', () => {
+      const label = input.closest('.space-y-2')?.querySelector('label');
+      if (label) { label.style.color = ''; label.style.transform = ''; }
+    });
+  });
+
+  /* ── Reveal au scroll pour les cards (.fade-up) ──────────── */
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll('.fade-up').forEach(el => io.observe(el));
+
+})();
+</script>
+{% endblock %}

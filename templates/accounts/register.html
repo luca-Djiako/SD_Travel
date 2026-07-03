@@ -1,0 +1,408 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}SD Travel — Créer un compte{% endblock %}
+
+{% block extra_css %}
+<style>
+  .shimmer-btn:hover {
+    background: linear-gradient(110deg, #fcbf40 45%, #ffdea6 50%, #fcbf40 55%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite linear;
+  }
+  @keyframes shimmer { from{background-position:100% 0} to{background-position:-100% 0} }
+
+  .input-field {
+    width: 100%;
+    padding: 0.8rem 1rem 0.8rem 2.75rem;
+    background: #f2f4f7;
+    border: 1.5px solid transparent;
+    border-radius: 0.75rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    color: #191c1e;
+    outline: none;
+    transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  }
+  .input-field:focus {
+    background: #fff;
+    border-color: #fcbf40;
+    box-shadow: 0 0 0 3px rgba(252,191,64,0.15);
+  }
+  .input-field.error {
+    border-color: #ba1a1a;
+    box-shadow: 0 0 0 3px rgba(186,26,26,0.1);
+  }
+
+  /* Barre de force du mot de passe */
+  .strength-bar {
+    height: 4px;
+    border-radius: 9999px;
+    transition: width 0.4s ease, background 0.4s ease;
+  }
+
+  /* Step indicator */
+  .step-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    transition: background 0.3s ease, transform 0.3s ease;
+  }
+  .step-dot.active {
+    background: #ffdea6;
+    transform: scale(1.4);
+  }
+
+  /* ===== Animations d'entrée & bandeau avantages (mobile) ===== */
+  @keyframes fadeDown {
+    from { opacity:0; transform: translateY(-14px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(18px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+  @keyframes shakeX {
+    10%, 90%      { transform: translateX(-2px); }
+    20%, 80%      { transform: translateX(4px);  }
+    30%, 50%, 70% { transform: translateX(-6px); }
+    40%, 60%      { transform: translateX(6px);  }
+  }
+  .anim-fade-down { animation: fadeDown .6s ease-out both; }
+  .anim-fade-up   { animation: fadeUp .55s ease-out both; }
+  .anim-shake     { animation: shakeX .5s ease-in-out; }
+  .anim-delay-1 { animation-delay: .1s; }
+  .anim-delay-2 { animation-delay: .2s; }
+  .anim-delay-3 { animation-delay: .3s; }
+  .anim-delay-4 { animation-delay: .4s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .anim-fade-down, .anim-fade-up, .anim-shake { animation: none !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="<div class="flex flex-col lg:flex-row min-h-screen">
+">
+
+  <!-- ── Gauche : Branding ─────────────────────────────────── -->
+  <aside class="hidden lg:flex lg:w-5/12 relative bg-primary-container flex-col justify-between p-12 overflow-hidden">
+
+    <!-- Orbes -->
+    <div class="absolute top-[-10%] right-[-5%] w-96 h-96 bg-secondary-container/10 rounded-full blur-[100px]"></div>
+    <div class="absolute bottom-[-5%] left-[-10%] w-80 h-80 bg-tertiary-fixed/5 rounded-full blur-[80px]"></div>
+
+    <!-- Logo -->
+    <div class="relative z-10 flex items-center gap-3 anim-fade-down">
+      <div class="w-10 h-10 bg-secondary-container flex items-center justify-center rounded-lg shadow-lg">
+        <span class="material-symbols-outlined text-primary-container font-bold">flight_takeoff</span>   
+      </div>
+      <span class="font-display-lg text-headline-md text-secondary-fixed tracking-tight">SD Travel</span>
+    </div>
+
+    <!-- Contenu central -->
+    <div class="relative z-10">
+      <h2 class="font-display-lg text-display-lg text-white mb-6 leading-tight anim-fade-up anim-delay-1">
+        Rejoignez l'élite des voyageurs.
+      </h2>
+      <p class="font-body-lg text-on-primary-container mb-10 anim-fade-up anim-delay-2">
+        Créez votre compte et accédez à des offres exclusives, des tarifs négociés et un service conciergerie premium.
+      </p>
+
+      <!-- Avantages -->
+      <div class="space-y-4">
+        {% for avantage in avantages %}
+        <div class="flex items-center gap-3 anim-fade-up" style="animation-delay:{{ forloop.counter0 }}00ms">
+          <div class="w-8 h-8 rounded-full bg-secondary-fixed/10 flex items-center justify-center flex-shrink-0">
+            <span class="material-symbols-outlined text-secondary-fixed text-[18px]" style="font-variation-settings:'FILL' 1;">{{ avantage.icon }}</span>
+          </div>
+          <span class="font-body-md text-on-primary-container">{{ avantage.text }}</span>
+        </div>
+        {% empty %}
+        <div class="flex items-center gap-3 anim-fade-up" style="animation-delay:000ms">
+          <div class="w-8 h-8 rounded-full bg-secondary-fixed/10 flex items-center justify-center flex-shrink-0">
+            <span class="material-symbols-outlined text-secondary-fixed text-[18px]" style="font-variation-settings:'FILL' 1;">check_circle</span>
+          </div>
+          <span class="font-body-md text-on-primary-container">Accès aux tarifs exclusifs SD Travel</span>
+        </div>
+        <div class="flex items-center gap-3 anim-fade-up" style="animation-delay:100ms">
+          <div class="w-8 h-8 rounded-full bg-secondary-fixed/10 flex items-center justify-center flex-shrink-0">
+            <span class="material-symbols-outlined text-secondary-fixed text-[18px]" style="font-variation-settings:'FILL' 1;">check_circle</span>
+          </div>
+          <span class="font-body-md text-on-primary-container">Suivi de vos réservations en temps réel</span>
+        </div>
+        <div class="flex items-center gap-3 anim-fade-up" style="animation-delay:200ms">
+          <div class="w-8 h-8 rounded-full bg-secondary-fixed/10 flex items-center justify-center flex-shrink-0">
+            <span class="material-symbols-outlined text-secondary-fixed text-[18px]" style="font-variation-settings:'FILL' 1;">check_circle</span>
+          </div>
+          <span class="font-body-md text-on-primary-container">Support prioritaire 24/7</span>
+        </div>
+        <div class="flex items-center gap-3 anim-fade-up" style="animation-delay:300ms">
+          <div class="w-8 h-8 rounded-full bg-secondary-fixed/10 flex items-center justify-center flex-shrink-0">
+            <span class="material-symbols-outlined text-secondary-fixed text-[18px]" style="font-variation-settings:'FILL' 1;">check_circle</span>
+          </div>
+          <span class="font-body-md text-on-primary-container">Programme de fidélité dès la 1ère réservation</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Step dots -->
+    <div class="relative z-10 flex items-center gap-2 anim-fade-up anim-delay-4">
+      <div class="step-dot" id="dot-1"></div>
+      <div class="step-dot active" id="dot-2"></div>
+      <div class="step-dot" id="dot-3"></div>
+      <span class="ml-3 font-label-caps text-[10px] text-on-primary-container opacity-60">CRÉATION DE COMPTE</span>
+    </div>
+
+    <!-- Image fond -->
+    <div class="absolute inset-0 opacity-20 mix-blend-overlay">
+      <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEobxOvmlTRk-SzWPZgcToOaCDi2sGf9IBdomFpPtaROINYBtyIrd6lqdfpToNti3EByysUsrd1eAat_J_kdDfAIXNvcFWRBS7q5tWkLwqfhzT2RsGQaDh7oaxUVRYysjSpOukbQJw86RpfMvKIaIahIB7a1qeQdYtmrZ9OR1mPhBTMQ4tQabLLAq7vBvTY-Ki3wf0kZcfHMOLsJLpTf34C0lBTJqfEcs9hhIlx6y0oyxry3EGzMlT"
+           class="w-full h-full object-cover" alt="">
+      {# REPLACE: {% static 'img/destinations/dubai.jpg' %} #}
+    </div>
+  </aside>
+
+  <!-- ── Droite : Formulaire ───────────────────────────────── -->
+  <main class="w-full lg:w-7/12 bg-surface-container-lowest flex flex-col justify-center px-6 md:px-12 lg:px-16 py-12 overflow-y-auto">
+    <div class="max-w-lg w-full mx-auto">
+
+      <!-- Bandeau avantages (mobile/tablette uniquement — relais visuel du panneau de marque masqué sous lg) -->
+      <div class="lg:hidden mb-8 anim-fade-down">
+        <div class="bg-primary-container rounded-xl p-4 shadow-lg relative overflow-hidden">
+          <div class="absolute -top-8 -right-8 w-24 h-24 bg-secondary-container/10 rounded-full blur-2xl"></div>
+          <p class="font-label-caps text-[10px] text-secondary-fixed-dim tracking-wide mb-1 relative z-10">REJOIGNEZ L'ÉLITE</p>
+          <p class="text-white text-sm font-semibold mb-3 relative z-10">Des avantages exclusifs vous attendent</p>
+          <div class="flex flex-wrap gap-2 relative z-10">
+            <span class="flex items-center gap-1.5 bg-white/10 rounded-full px-3 py-1.5 text-[11px] text-on-primary-container">
+              <i class="fa-solid fa-circle-check text-secondary-fixed text-[12px]"></i>
+              Tarifs exclusifs
+            </span>
+            <span class="flex items-center gap-1.5 bg-white/10 rounded-full px-3 py-1.5 text-[11px] text-on-primary-container">
+              <i class="fa-solid fa-headset text-secondary-fixed text-[12px]"></i>
+              Support 24/7
+            </span>
+            <span class="flex items-center gap-1.5 bg-white/10 rounded-full px-3 py-1.5 text-[11px] text-on-primary-container">
+              <i class="fa-solid fa-gift text-secondary-fixed text-[12px]"></i>
+              Fidélité dès la 1ère résa
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Header -->
+      <div class="mb-8 anim-fade-up anim-delay-1">
+        <h1 class="font-display-lg text-headline-md text-on-surface mb-2">Créer votre compte</h1>
+        <p class="font-body-md text-on-surface-variant">
+          Déjà membre ?
+          <a href="{% url 'login' %}" class="text-secondary font-bold hover:underline">Se connecter</a>
+        </p>
+      </div>
+
+      <!-- Erreurs Django -->
+      {% if form.errors %}
+      <div class="bg-error-container text-on-error-container p-4 rounded-xl mb-6 flex items-start gap-3 anim-shake">
+        <span class="material-symbols-outlined flex-shrink-0 mt-0.5">error</span>
+        <div>
+          <p class="font-bold text-sm mb-1">Veuillez corriger les erreurs suivantes :</p>
+          {% for field in form %}
+            {% for error in field.errors %}
+            <p class="text-sm">{{ field.label }} : {{ error }}</p>
+            {% endfor %}
+          {% endfor %}
+          {% for error in form.non_field_errors %}
+          <p class="text-sm">{{ error }}</p>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Formulaire -->
+      <form method="POST" action="{% url 'register' %}" class="space-y-5 anim-fade-up anim-delay-2">
+        {% csrf_token %}
+
+        <!-- Nom + Prénom -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="space-y-1.5">
+            <label class="font-label-caps text-label-caps text-on-surface-variant block ml-1">Prénom</label>
+            <div class="relative">
+              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">person</span>
+              <input name="first_name" type="text" placeholder="Jean"
+                     value="{{ form.first_name.value|default:'' }}"
+                     class="input-field {% if form.first_name.errors %}error{% endif %}"
+                     required autocomplete="given-name">
+            </div>
+          </div>
+          <div class="space-y-1.5">
+            <label class="font-label-caps text-label-caps text-on-surface-variant block ml-1">Nom</label>
+            <div class="relative">
+              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">badge</span>
+              
+              <input name="last_name" type="text" placeholder="Dupont"
+                     value="{{ form.last_name.value|default:'' }}"
+                     class="input-field {% if form.last_name.errors %}error{% endif %}"
+                     required autocomplete="family-name">
+            </div>
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div class="space-y-1.5">
+          <label class="font-label-caps text-label-caps text-on-surface-variant block ml-1">Adresse Email</label>
+          <div class="relative">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">mail</span>
+            <input name="email" type="email" placeholder="jean.dupont@email.com"
+                   value="{{ form.email.value|default:'' }}"
+                   class="input-field {% if form.email.errors %}error{% endif %}"
+                   required autocomplete="email">
+          </div>
+        </div>
+
+        <!-- Téléphone -->
+        <div class="space-y-1.5">
+          <label class="font-label-caps text-label-caps text-on-surface-variant block ml-1">Téléphone</label>
+          <div class="relative">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">call</span>
+            <input name="telephone" type="tel" placeholder="+237 6 00 00 00 00"
+                   value="{{ form.telephone.value|default:'' }}"
+                   class="input-field {% if form.telephone.errors %}error{% endif %}"
+                   autocomplete="tel">
+          </div>
+        </div>
+
+        <!-- Mot de passe -->
+        <div class="space-y-1.5">
+          <label class="font-label-caps text-label-caps text-on-surface-variant block ml-1">Mot de passe</label>
+          <div class="relative">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">lock</span>
+            <input name="password1" type="password" id="password1" placeholder="••••••••"
+                   class="input-field {% if form.password1.errors %}error{% endif %} pr-12"
+                   required autocomplete="new-password"
+                   oninput="checkStrength(this.value)">
+            <button type="button" onclick="togglePwd('password1', this)"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors">
+              <span class="material-symbols-outlined text-[20px]">visibility</span>
+            </button>
+          </div>
+          <!-- Barre de force -->
+          <div class="flex gap-1 mt-1">
+            <div class="flex-1 h-1 rounded-full bg-surface-container-high overflow-hidden">
+              <div class="strength-bar bg-error w-0" id="bar-1"></div>
+            </div>
+            <div class="flex-1 h-1 rounded-full bg-surface-container-high overflow-hidden">
+              <div class="strength-bar bg-error w-0" id="bar-2"></div>
+            </div>
+            <div class="flex-1 h-1 rounded-full bg-surface-container-high overflow-hidden">
+              <div class="strength-bar w-0" id="bar-3" style="background:#E2A829"></div>
+            </div>
+            <div class="flex-1 h-1 rounded-full bg-surface-container-high overflow-hidden">
+              <div class="strength-bar w-0" id="bar-4" style="background:#16a34a"></div>
+            </div>
+          </div>
+          <p class="text-[11px] text-on-surface-variant ml-1" id="strength-label"></p>
+        </div>
+
+        <!-- Confirmer mot de passe -->
+        <div class="space-y-1.5">
+          <label class="font-label-caps text-label-caps text-on-surface-variant block ml-1">Confirmer le mot de passe</label>
+          <div class="relative">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">lock_reset</span>
+            <input name="password2" type="password" id="password2" placeholder="••••••••"
+                   class="input-field {% if form.password2.errors %}error{% endif %} pr-12"
+                   required autocomplete="new-password">
+            <button type="button" onclick="togglePwd('password2', this)"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors">
+              <span class="material-symbols-outlined text-[20px]">visibility</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- CGU -->
+        <label class="flex items-start gap-3 cursor-pointer group">
+          <input type="checkbox" name="cgu" required
+                 class="mt-1 w-4 h-4 rounded border-outline-variant accent-secondary cursor-pointer">
+          <span class="font-body-md text-sm text-on-surface-variant leading-relaxed">
+            J'accepte les
+            <a href="#" class="text-secondary font-bold hover:underline">Conditions Générales</a>
+            et la
+            <a href="#" class="text-secondary font-bold hover:underline">Politique de confidentialité</a>
+            de SD Travel.
+          </span>
+        </label>
+
+        <!-- Bouton submit -->
+        <button type="submit"
+                class="shimmer-btn w-full bg-secondary-container text-on-secondary-fixed font-label-caps text-label-caps py-4 rounded-xl shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-transform mt-2">
+          <span class="material-symbols-outlined text-[18px]">person_add</span>
+          Créer mon compte
+        </button>
+
+      </form>
+
+      <!-- Séparateur -->
+      <div class="flex items-center my-6 anim-fade-up anim-delay-3">
+        <div class="flex-grow h-[1px] bg-outline-variant/30"></div>
+        <span class="px-4 font-label-caps text-[10px] text-outline">OU</span>
+        <div class="flex-grow h-[1px] bg-outline-variant/30"></div>
+      </div>
+
+      <!-- Google -->
+      <button class="w-full border border-outline-variant hover:bg-surface-container-low text-on-surface font-label-caps text-label-caps py-4 rounded-xl transition-colors flex items-center justify-center gap-3 anim-fade-up anim-delay-3">
+        <svg height="20" viewBox="0 0 24 24" width="20">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Continuer avec Google
+      </button>
+
+    </div>
+  </main>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  /* ── Toggle visibilité mot de passe ───────────────────────── */
+  function togglePwd(id, btn) {
+    const input = document.getElementById(id);
+    const icon = btn.querySelector('.material-symbols-outlined');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.textContent = 'visibility_off';
+    } else {
+      input.type = 'password';
+      icon.textContent = 'visibility';
+    }
+  }
+
+  /* ── Force du mot de passe ────────────────────────────────── */
+  function checkStrength(val) {
+    const bars   = [1,2,3,4].map(i => document.getElementById('bar-'+i));
+    const label  = document.getElementById('strength-label');
+    const colors = ['#ba1a1a', '#ba1a1a', '#E2A829', '#16a34a'];
+    const labels = ['', 'Trop court', 'Faible', 'Moyen', 'Fort'];
+
+    let score = 0;
+    if (val.length >= 8)             score++;
+    if (/[A-Z]/.test(val))           score++;
+    if (/[0-9]/.test(val))           score++;
+    if (/[^A-Za-z0-9]/.test(val))    score++;
+
+    bars.forEach((bar, i) => {
+      if (i < score) {
+        bar.style.width   = '100%';
+        bar.style.background = colors[Math.min(score-1, 3)];
+      } else {
+        bar.style.width = '0%';
+      }
+    });
+    label.textContent = val.length ? labels[score] : '';
+    label.style.color = colors[Math.min(score-1, 3)] || '#74777d';
+  }
+</script>
+{% block footer %}{% endblock %}
+{% endblock %}

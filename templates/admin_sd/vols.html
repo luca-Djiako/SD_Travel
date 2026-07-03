@@ -1,0 +1,876 @@
+{% extends 'base_admin.html' %}
+{% load static %}
+{% block title %}SD Admin — Gestion des Vols{% endblock %}
+
+{% block extra_css %}
+<style>
+  .amber-shimmer:hover { background: linear-gradient(135deg,#E2A829 0%,#ffdea6 50%,#E2A829 100%); background-size:200% 200%; animation:shimmer 2s infinite linear; }
+  @keyframes shimmer { 0%{background-position:100% 0%} 100%{background-position:-100% 0%} }
+  .glass-card { background:rgba(255,255,255,0.8); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.1); }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+
+<!-- Header -->
+<header class="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center px-4 sm:px-margin-desktop pt-6 sm:pt-10 pb-stack-lg">
+  <div>
+    <h1 class="font-display-lg text-2xl sm:text-display-lg text-primary leading-tight">Gestion des Vols</h1>
+    <p class="text-on-surface-variant font-body-md mt-2 text-sm sm:text-base">Supervisez les itinéraires, les tarifs et les disponibilités.</p>
+  </div>
+  <div class="flex items-center gap-3 bg-surface-container-low p-2 pr-4 rounded-full border border-outline-variant/30 self-start sm:self-auto">
+    <div class="w-10 h-10 shrink-0 rounded-full bg-secondary-fixed-dim flex items-center justify-center font-bold text-primary-container text-sm">
+      {{ user.first_name|first }}{{ user.last_name|first }}
+    </div>
+    <div class="min-w-0">
+      <p class="font-label-caps text-[10px] text-on-surface-variant uppercase">Administrateur</p>
+      <p class="font-body-md text-on-surface leading-none truncate">{{ user.get_full_name }}</p>
+    </div>
+  </div>
+</header>
+
+<div class="px-4 sm:px-margin-desktop pb-stack-lg">
+
+  <!-- Messages Django -->
+  {% if messages %}
+  <div class="mb-6 space-y-2">
+    {% for message in messages %}
+    <div class="px-4 py-3 rounded-xl text-sm font-medium
+      {% if message.tags == 'success' %}bg-green-100 text-green-800
+      {% elif message.tags == 'error' %}bg-red-100 text-red-800
+      {% else %}bg-blue-100 text-blue-800{% endif %}">
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Stats réelles -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-gutter mb-stack-lg">
+    <div class="bg-surface-container-lowest p-4 sm:p-6 rounded-2xl shadow-[0_4px_20px_rgba(13,27,42,0.05)] border border-white">
+      <div class="flex items-center justify-between mb-3 sm:mb-4">
+        <i class="fa-solid fa-plane-departure text-secondary p-2 bg-secondary-fixed/20 rounded-lg"></i>
+        <span class="text-xs font-label-caps text-green-600">En ligne</span>
+      </div>
+      <p class="text-on-surface-variant font-label-caps text-xs">Vols Actifs</p>
+      <p class="font-price-display text-xl sm:text-[28px] text-primary mt-1">{{ stats.vols_actifs }}</p>
+    </div>
+    <div class="bg-surface-container-lowest p-4 sm:p-6 rounded-2xl shadow-[0_4px_20px_rgba(13,27,42,0.05)] border border-white">
+      <div class="flex items-center justify-between mb-3 sm:mb-4">
+        <i class="fa-solid fa-circle-xmark text-error p-2 bg-red-50 rounded-lg"></i>
+        <span class="text-xs font-label-caps text-error">Annulés</span>
+      </div>
+      <p class="text-on-surface-variant font-label-caps text-xs">Vols Annulés</p>
+      <p class="font-price-display text-xl sm:text-[28px] text-primary mt-1">{{ stats.vols_annules }}</p>
+    </div>
+    <div class="bg-surface-container-lowest p-4 sm:p-6 rounded-2xl shadow-[0_4px_20px_rgba(13,27,42,0.05)] border border-white">
+      <div class="flex items-center justify-between mb-3 sm:mb-4">
+        <i class="fa-solid fa-chair text-secondary p-2 bg-secondary-fixed/20 rounded-lg"></i>
+        <span class="text-xs font-label-caps text-on-surface-variant">Éco</span>
+      </div>
+      <p class="text-on-surface-variant font-label-caps text-xs">Places Disponibles</p>
+      <p class="font-price-display text-xl sm:text-[28px] text-primary mt-1">{{ stats.total_places }}</p>
+    </div>
+    <div class="bg-surface-container-lowest p-4 sm:p-6 rounded-2xl shadow-[0_4px_20px_rgba(13,27,42,0.05)] border border-white">
+      <div class="flex items-center justify-between mb-3 sm:mb-4">
+        <i class="fa-solid fa-ban text-orange-500 p-2 bg-orange-50 rounded-lg"></i>
+        <span class="text-xs font-label-caps text-orange-600">Complets</span>
+      </div>
+      <p class="text-on-surface-variant font-label-caps text-xs">Vols Complets</p>
+      <p class="font-price-display text-xl sm:text-[28px] text-primary mt-1">{{ stats.vols_complets }}</p>
+    </div>
+  </div>
+
+  <!-- Barre recherche + actions -->
+  <div class="glass-card mb-stack-md rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
+    <div class="relative w-full md:w-96">
+      <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-outline"></i>
+      <input id="search-input" class="w-full bg-surface-container-low border-none rounded-xl py-3 pl-12 pr-4 focus:ring-2 focus:ring-secondary-container font-body-md"
+             placeholder="Rechercher un vol, une ville ou un n°..." type="text"
+             oninput="filterTable(this.value)">
+    </div>
+    <div class="flex gap-2 w-full md:w-auto flex-col sm:flex-row">
+      <select onchange="filterStatut(this.value)" class="w-full sm:w-auto px-4 py-2 rounded-xl border border-outline-variant bg-white font-label-caps text-xs outline-none">
+        <option value="">Tous les statuts</option>
+        <option value="actif">Actif</option>
+        <option value="complet">Complet</option>
+        <option value="annule">Annulé</option>
+        <option value="termine">Terminé</option>
+      </select>
+      <button onclick="openModal()" class="amber-shimmer w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-secondary-container text-on-secondary-container font-label-caps text-xs shadow-lg transition-all">
+        <i class="fa-solid fa-plus"></i> Nouveau Vol
+      </button>
+    </div>
+  </div>
+
+  <!-- Tableau des vols -->
+  <div class="bg-white rounded-3xl shadow-[0_4px_20px_rgba(13,27,42,0.05)] overflow-hidden border border-outline-variant/20">
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[860px] text-left border-collapse" id="vols-table">
+        <thead>
+          <tr class="bg-surface-container-low text-on-surface-variant border-b border-outline-variant/30">
+            <th class="px-4 sm:px-6 py-4 font-label-caps text-xs uppercase tracking-widest whitespace-nowrap">N° Vol / Compagnie</th>
+            <th class="px-4 sm:px-6 py-4 font-label-caps text-xs uppercase tracking-widest whitespace-nowrap">Itinéraire</th>
+            <th class="px-4 sm:px-6 py-4 font-label-caps text-xs uppercase tracking-widest whitespace-nowrap">Départ</th>
+            <th class="px-4 sm:px-6 py-4 font-label-caps text-xs uppercase tracking-widest whitespace-nowrap">Tarif Éco</th>
+            <th class="px-4 sm:px-6 py-4 font-label-caps text-xs uppercase tracking-widest whitespace-nowrap">Places</th>
+            <th class="px-4 sm:px-6 py-4 font-label-caps text-xs uppercase tracking-widest whitespace-nowrap">Statut</th>
+            <th class="px-4 sm:px-6 py-4 font-label-caps text-xs uppercase tracking-widest text-right whitespace-nowrap">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-surface-container">
+
+          {% for vol in vols %}
+          <tr class="hover:bg-surface-container-low/50 transition-colors vol-row" data-statut="{{ vol.statut }}">
+
+            <td class="px-4 sm:px-6 py-5">
+              <div class="flex flex-col">
+                <span class="font-bold text-primary">{{ vol.numero_vol }}</span>
+                <span class="text-xs text-on-surface-variant">{{ vol.compagnie.nom }}</span>
+              </div>
+            </td>
+
+            <td class="px-4 sm:px-6 py-5">
+              <div class="flex items-center gap-2">
+                <span class="font-semibold text-sm">{{ vol.code_depart }}</span>
+                <i class="fa-solid fa-plane text-secondary text-xs"></i>
+                <span class="font-semibold text-sm">{{ vol.code_arrivee }}</span>
+              </div>
+              <p class="text-[10px] text-on-surface-variant mt-0.5">{{ vol.ville_depart }} → {{ vol.ville_arrivee }}</p>
+            </td>
+
+            <td class="px-4 sm:px-6 py-5 whitespace-nowrap">
+              <span class="text-sm">{{ vol.date_depart|date:"d M Y" }}</span>
+              <p class="text-xs font-bold text-secondary">{{ vol.date_depart|date:"H:i" }}</p>
+            </td>
+
+            <td class="px-4 sm:px-6 py-5 font-price-display text-primary whitespace-nowrap">
+              {{ vol.prix_economique|floatformat:0 }} FCFA
+            </td>
+
+            <td class="px-4 sm:px-6 py-5 whitespace-nowrap">
+              <span class="text-sm font-medium">{{ vol.places_economique }}</span>
+              <p class="text-[10px] text-on-surface-variant">places éco</p>
+            </td>
+
+            <td class="px-4 sm:px-6 py-5">
+              {% if vol.statut == 'actif' %}
+              <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 whitespace-nowrap">
+                <span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5 animate-pulse"></span>Actif
+              </span>
+              {% elif vol.statut == 'complet' %}
+              <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 whitespace-nowrap">
+                <span class="w-1.5 h-1.5 rounded-full bg-orange-500 mr-1.5"></span>Complet
+              </span>
+              {% elif vol.statut == 'annule' %}
+              <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 whitespace-nowrap">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5"></span>Annulé
+              </span>
+              {% else %}
+              <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 whitespace-nowrap">
+                <span class="w-1.5 h-1.5 rounded-full bg-gray-400 mr-1.5"></span>Terminé
+              </span>
+              {% endif %}
+            </td>
+
+            <td class="px-4 sm:px-6 py-5 text-right">
+              <div class="flex items-center justify-end gap-1">
+                <!-- Changer statut -->
+                <form method="POST" action="{% url 'admin_statut_vol' vol.id %}" class="inline">
+                  {% csrf_token %}
+                  <select name="statut" onchange="this.form.submit()"
+                          class="text-xs border border-outline-variant rounded-lg px-2 py-1 bg-white outline-none cursor-pointer">
+                    <option value="actif"    {% if vol.statut == 'actif' %}selected{% endif %}>Actif</option>
+                    <option value="complet"  {% if vol.statut == 'complet' %}selected{% endif %}>Complet</option>
+                    <option value="annule"   {% if vol.statut == 'annule' %}selected{% endif %}>Annulé</option>
+                    <option value="termine"  {% if vol.statut == 'termine' %}selected{% endif %}>Terminé</option>
+                  </select>
+                </form>
+             
+                <!-- Modifier -->
+                 
+                <button onclick="openEditModal(
+                    {{ vol.id }},
+                    '{{ vol.numero_vol }}',
+                    '{{ vol.ville_depart }}',
+                    '{{ vol.ville_arrivee }}',
+                    '{{ vol.code_depart }}',
+                    '{{ vol.code_arrivee }}',
+                    '{{ vol.date_depart|date:"Y-m-d" }}T{{ vol.date_depart|date:"H:i" }}',
+                    '{{ vol.date_arrivee|date:"Y-m-d" }}T{{ vol.date_arrivee|date:"H:i" }}',
+                    {{ vol.compagnie_id }},
+                    {{ vol.nombre_escales }},
+                    '{{ vol.prix_economique }}',
+                    '{{ vol.prix_affaires|default:"" }}',
+                    '{{ vol.prix_premiere|default:"" }}',
+                    {{ vol.places_economique }},
+                    {{ vol.places_affaires }},
+                    {{ vol.places_premiere }},
+                    '{{ vol.statut }}',
+                    {{ vol.est_populaire|yesno:"true,false" }}
+                  )" class="p-2 text-on-surface-variant hover:text-secondary transition-colors">
+                  <i class="fa-solid fa-pen text-sm"></i>
+                </button>
+                <!-- Supprimer -->
+                <button onclick="confirmDelete({{ vol.id }}, '{{ vol.numero_vol }}')"
+                        class="p-2 text-on-surface-variant hover:text-error transition-colors">
+                  <i class="fa-solid fa-trash text-sm"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="px-6 py-16 text-center text-on-surface-variant">
+              <i class="fa-solid fa-plane-slash text-4xl mb-4 block opacity-30"></i>
+              <p class="font-label-caps text-sm">Aucun vol enregistré</p>
+              <p class="text-xs mt-1">Cliquez sur "Nouveau Vol" pour commencer.</p>
+            </td>
+          </tr>
+          {% endfor %}
+
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Footer tableau -->
+    <div class="px-4 sm:px-6 py-4 bg-surface-container-low flex items-center justify-between">
+      <span class="text-sm text-on-surface-variant">
+        {{ total_vols }} vol{{ total_vols|pluralize }} au total
+      </span>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ MODAL AJOUTER VOL ══ -->
+<div class="fixed inset-0 bg-primary-container/60 backdrop-blur-sm z-[60] hidden items-center justify-center p-0 sm:p-4 overflow-y-auto" id="modal-backdrop">
+  <div class="bg-white w-full sm:max-w-2xl sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden transform scale-95 opacity-0 transition-all duration-300 sm:my-8 mt-auto sm:mt-0" id="flight-modal">
+
+    <div class="bg-primary-container p-5 sm:p-6 text-white flex justify-between items-center gap-3">
+      <div class="min-w-0">
+        <h2 class="text-lg sm:text-headline-md font-display-lg text-secondary-fixed truncate">Ajouter un nouveau vol</h2>
+        <p class="text-on-primary-container text-xs opacity-80 uppercase tracking-widest font-label-caps mt-1">Informations logistiques & Tarification</p>
+      </div>
+      <button class="shrink-0 text-on-primary-container hover:text-white transition-colors text-xl" onclick="closeModal()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <form class="p-5 sm:p-8 space-y-6 overflow-y-auto max-h-[80vh] sm:max-h-[75vh]" method="POST" action="{% url 'admin_vols' %}">
+      {% csrf_token %}
+
+      <!-- Ligne 1 : Ville départ / Ville arrivée -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="space-y-1">
+          <label class="block text-label-caps text-on-surface-variant uppercase ml-1 text-xs">Ville de Départ *</label>
+          <input name="ville_depart" required
+                 class="w-full border border-outline-variant/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-secondary-container outline-none text-sm"
+                 placeholder="ex: Paris">
+        </div>
+        <div class="space-y-1">
+          <label class="block text-label-caps text-on-surface-variant uppercase ml-1 text-xs">Ville d'Arrivée *</label>
+          <input name="ville_arrivee" required
+                 class="w-full border border-outline-variant/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-secondary-container outline-none text-sm"
+                 placeholder="ex: New York">
+        </div>
+      </div>
+
+      <!-- Ligne 2 : Code IATA -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="space-y-1">
+          <label class="block text-label-caps text-on-surface-variant uppercase ml-1 text-xs">Code Départ (IATA) *</label>
+          <input name="code_depart" required maxlength="3"
+                 class="w-full border border-outline-variant/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-secondary-container outline-none text-sm uppercase"
+                 placeholder="ex: CDG">
+        </div>
+        <div class="space-y-1">
+          <label class="block text-label-caps text-on-surface-variant uppercase ml-1 text-xs">Code Arrivée (IATA) *</label>
+          <input name="code_arrivee" required maxlength="3"
+                 class="w-full border border-outline-variant/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-secondary-container outline-none text-sm uppercase"
+                 placeholder="ex: JFK">
+        </div>
+      </div>
+
+      <!-- Ligne 3 : N° vol, Compagnie, Escales -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="space-y-1">
+          <label class="block text-label-caps text-on-surface-variant uppercase ml-1 text-xs">N° de Vol *</label>
+          <input name="numero_vol" required
+                 class="w-full border border-outline-variant/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-secondary-container outline-none text-sm"
+                 placeholder="AF-547">
+        </div>
+
+        <div class="space-y-1 md:col-span-3">
+          <label class="block text-label-caps text-on-surface-variant uppercase ml-1 text-xs">Compagnie *</label>
+          <select name="compagnie" id="compagnie-select" required onchange="toggleNewCompagnie(this.value)"
+                  class="w-full border border-outline-variant/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-secondary-container outline-none text-sm bg-white">
+            <option value="" disabled {% if not compagnies %}selected{% endif %}>-- Choisir une compagnie --</option>
+            {% for c in compagnies %}
+            <option value="{{ c.id }}" {% if forloop.first %}selected{% endif %}>{{ c.nom }} ({{ c.code_iata }})</option>
+            {% endfor %}
+            <option value="nouvelle">+ Ajouter une nouvelle compagnie</option>
+          </select>
+        </div>
+
+        <div class="space-y-1">
+          <label class="block text-label-caps text-on-surface-variant uppercase ml-1 text-xs">Escales</label>
+          <select name="nombre_escales"
+                  class="w-full border border-outline-variant/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-secondary-container outline-none text-sm bg-white">
+            <option value="0">Direct</option>
+            <option value="1">1 escale</option>
+            <option value="2">2 escales</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Ligne 4 : Dates -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="space-y-1">
+          <label class="block text-label-caps text-on-surface-variant uppercase ml-1 text-xs">Date & Heure de Départ *</label>
+          <input name="date_depart" type="datetime-local" required
+                 class="w-full border border-outline-variant/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-secondary-container outline-none text-sm">
+        </div>
+        <div class="space-y-1">
+          <label class="block text-label-caps text-on-surface-variant uppercase ml-1 text-xs">Date & Heure d'Arrivée *</label>
+          <input name="date_arrivee" type="datetime-local" required
+                 class="w-full border border-outline-variant/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-secondary-container outline-none text-sm">
+        </div>
+      </div>
+
+      <!-- Tarification -->
+      <div class="p-4 sm:p-6 bg-surface-container-low rounded-2xl space-y-4">
+        <p class="font-label-caps text-xs text-on-surface-variant uppercase border-b border-outline-variant/30 pb-2">Tarification par Classe (FCFA)</p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="space-y-1">
+            <label class="block text-[10px] text-on-surface-variant font-bold uppercase">Économique *</label>
+            <input name="prix_economique" type="number" min="0" required
+                   class="w-full border border-outline-variant/50 bg-white rounded-lg py-2 px-3 text-sm outline-none focus:ring-2 focus:ring-secondary-container"
+                   placeholder="0">
+          </div>
+          <div class="space-y-1">
+            <label class="block text-[10px] text-on-surface-variant font-bold uppercase">Affaires</label>
+            <input name="prix_affaires" type="number" min="0"
+                   class="w-full border border-outline-variant/50 bg-white rounded-lg py-2 px-3 text-sm outline-none focus:ring-2 focus:ring-secondary-container"
+                   placeholder="0">
+          </div>
+          <div class="space-y-1">
+            <label class="block text-[10px] text-on-surface-variant font-bold uppercase">Première</label>
+            <input name="prix_premiere" type="number" min="0"
+                   class="w-full border border-outline-variant/50 bg-white rounded-lg py-2 px-3 text-sm outline-none focus:ring-2 focus:ring-secondary-container"
+                   placeholder="0">
+          </div>
+        </div>
+      </div>
+
+      <!-- Places -->
+      <div class="p-4 sm:p-6 bg-surface-container-low rounded-2xl space-y-4">
+        <p class="font-label-caps text-xs text-on-surface-variant uppercase border-b border-outline-variant/30 pb-2">Nombre de Places</p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="space-y-1">
+            <label class="block text-[10px] text-on-surface-variant font-bold uppercase">Économique *</label>
+            <input name="places_economique" type="number" min="0" required
+                   class="w-full border border-outline-variant/50 bg-white rounded-lg py-2 px-3 text-sm outline-none focus:ring-2 focus:ring-secondary-container"
+                   placeholder="150">
+          </div>
+          <div class="space-y-1">
+            <label class="block text-[10px] text-on-surface-variant font-bold uppercase">Affaires</label>
+            <input name="places_affaires" type="number" min="0"
+                   class="w-full border border-outline-variant/50 bg-white rounded-lg py-2 px-3 text-sm outline-none focus:ring-2 focus:ring-secondary-container"
+                   placeholder="0">
+          </div>
+          <div class="space-y-1">
+            <label class="block text-[10px] text-on-surface-variant font-bold uppercase">Première</label>
+            <input name="places_premiere" type="number" min="0"
+                   class="w-full border border-outline-variant/50 bg-white rounded-lg py-2 px-3 text-sm outline-none focus:ring-2 focus:ring-secondary-container"
+                   placeholder="0">
+          </div>
+        </div>
+      </div>
+
+      <!-- Statut + Populaire -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+        <div class="space-y-1">
+          <label class="block text-label-caps text-on-surface-variant uppercase ml-1 text-xs">Statut de Publication</label>
+          <select name="statut"
+                  class="w-full border border-outline-variant/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-secondary-container outline-none text-sm bg-white">
+            <option value="actif">Actif — visible par les clients</option>
+            <option value="annule">Annulé</option>
+            <option value="complet">Complet</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-3 pt-2 md:pt-4">
+          <label class="relative inline-flex items-center cursor-pointer shrink-0">
+            <input type="checkbox" name="est_populaire" class="sr-only peer">
+            <div class="w-11 h-6 bg-surface-container rounded-full peer peer-checked:bg-secondary-container transition-colors"></div>
+            <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow transition-all peer-checked:left-6"></div>
+          </label>
+          <div>
+            <span class="font-label-caps text-sm text-on-surface block">Mettre en avant</span>
+            <span class="text-[10px] text-on-surface-variant">Affiché sur la page d'accueil</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Boutons -->
+      <div class="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 pt-2">
+        <button type="button" onclick="closeModal()"
+                class="w-full sm:w-auto sm:px-8 border border-outline-variant text-on-surface-variant font-label-caps py-3 rounded-xl hover:bg-surface-container transition-colors">
+          Annuler
+        </button>
+        <button type="submit"
+                class="w-full flex-1 bg-primary-container text-white font-label-caps text-label-caps py-4 rounded-xl hover:bg-black transition-all flex items-center justify-center gap-2">
+          <i class="fa-solid fa-plane-departure"></i> Publier le Vol
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ MINI-MODAL COMPAGNIE ══ -->
+<div class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[80] hidden items-center justify-center p-4" id="compagnie-modal">
+  <div class="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-sm">
+
+    <div class="flex justify-between items-center mb-6">
+      <h3 class="font-headline-md text-lg text-primary">Nouvelle compagnie</h3>
+      <button onclick="closeCompagnieModal()" class="text-on-surface-variant hover:text-primary">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+    </div>
+
+    <div class="space-y-4">
+      <div class="space-y-1">
+        <label class="block text-xs font-label-caps text-on-surface-variant uppercase ml-1">Nom de la compagnie *</label>
+        <input id="comp-nom" type="text" placeholder="ex: Camair-Co"
+              class="w-full border border-outline-variant/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-secondary-container outline-none text-sm">
+      </div>
+      <div class="space-y-1">
+        <label class="block text-xs font-label-caps text-on-surface-variant uppercase ml-1">Code IATA * (3 lettres max)</label>
+        <input id="comp-code" type="text" placeholder="ex: QC" maxlength="3"
+              class="w-full border border-outline-variant/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-secondary-container outline-none text-sm uppercase">
+      </div>
+
+      <!-- Message erreur -->
+      <p id="comp-error" class="hidden text-xs text-error font-medium px-1"></p>
+    </div>
+
+    <div class="flex flex-col-reverse sm:flex-row gap-3 mt-6">
+      <button onclick="closeCompagnieModal()"
+              class="flex-1 border border-outline-variant text-on-surface-variant font-label-caps py-3 rounded-xl hover:bg-surface-container transition-colors text-sm">
+        Annuler
+      </button>
+      <button onclick="soumettreCompagnie()"
+              id="comp-submit-btn"
+              class="flex-1 bg-primary-container text-white font-label-caps py-3 rounded-xl hover:opacity-90 transition-opacity text-sm flex items-center justify-center gap-2">
+        <i class="fa-solid fa-floppy-disk"></i> Créer
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ MODAL MODIFIER VOL ══ -->
+<div class="fixed inset-0 bg-primary-container/60 backdrop-blur-sm z-[60] hidden items-center justify-center p-0 sm:p-4 overflow-y-auto" id="edit-modal-backdrop">
+  <div class="bg-white w-full sm:max-w-2xl sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden transform scale-95 opacity-0 transition-all duration-300 sm:my-8 mt-auto sm:mt-0" id="edit-flight-modal">
+
+    <div class="bg-primary-container p-5 sm:p-6 text-white flex justify-between items-center gap-3">
+      <div class="min-w-0">
+        <h2 class="text-lg sm:text-headline-md font-display-lg text-secondary-fixed truncate">Modifier le vol</h2>
+        <p id="edit-modal-subtitle" class="text-on-primary-container text-xs opacity-80 uppercase tracking-widest font-label-caps mt-1 truncate"></p>
+      </div>
+      <button class="shrink-0 text-on-primary-container hover:text-white transition-colors text-xl" onclick="closeEditModal()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <form id="edit-form" class="p-5 sm:p-8 space-y-6 overflow-y-auto max-h-[80vh] sm:max-h-[75vh]" method="POST" action="">
+      {% csrf_token %}
+
+      <!-- Ligne 1 : Ville départ / Ville arrivée -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="space-y-1">
+          <label class="block text-label-caps text-on-surface-variant uppercase ml-1 text-xs">Ville de Départ *</label>
+          <input id="edit-ville_depart" name="ville_depart" required
+                 class="w-full border border-outline-variant/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-secondary-container outline-none text-sm">
+        </div>
+        <div class="space-y-1">
+          <label class="block text-label-caps text-on-surface-variant uppercase ml-1 text-xs">Ville d'Arrivée *</label>
+          <input id="edit-ville_arrivee" name="ville_arrivee" required
+                 class="w-full border border-outline-variant/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-secondary-container outline-none text-sm">
+        </div>
+      </div>
+
+      <!-- Ligne 2 : Code IATA -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="space-y-1">
+          <label class="block text-label-caps text-on-surface-variant uppercase ml-1 text-xs">Code Départ (IATA) *</label>
+          <input id="edit-code_depart" name="code_depart" required maxlength="3"
+                 class="w-full border border-outline-variant/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-secondary-container outline-none text-sm uppercase">
+        </div>
+        <div class="space-y-1">
+          <label class="block text-label-caps text-on-surface-variant uppercase ml-1 text-xs">Code Arrivée (IATA) *</label>
+          <input id="edit-code_arrivee" name="code_arrivee" required maxlength="3"
+                 class="w-full border border-outline-variant/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-secondary-container outline-none text-sm uppercase">
+        </div>
+      </div>
+
+      <!-- Ligne 3 : N° vol, Compagnie, Escales -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="space-y-1">
+          <label class="block text-label-caps text-on-surface-variant uppercase ml-1 text-xs">N° de Vol *</label>
+          <input id="edit-numero_vol" name="numero_vol" required
+                 class="w-full border border-outline-variant/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-secondary-container outline-none text-sm">
+        </div>
+
+        <div class="space-y-1 md:col-span-2">
+          <label class="block text-label-caps text-on-surface-variant uppercase ml-1 text-xs">Compagnie *</label>
+          <select id="edit-compagnie" name="compagnie" required
+                  class="w-full border border-outline-variant/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-secondary-container outline-none text-sm bg-white">
+            {% for c in compagnies %}
+            <option value="{{ c.id }}">{{ c.nom }} ({{ c.code_iata }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="space-y-1">
+          <label class="block text-label-caps text-on-surface-variant uppercase ml-1 text-xs">Escales</label>
+          <select id="edit-nombre_escales" name="nombre_escales"
+                  class="w-full border border-outline-variant/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-secondary-container outline-none text-sm bg-white">
+            <option value="0">Direct</option>
+            <option value="1">1 escale</option>
+            <option value="2">2 escales</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Ligne 4 : Dates -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="space-y-1">
+          <label class="block text-label-caps text-on-surface-variant uppercase ml-1 text-xs">Date & Heure de Départ *</label>
+          <input id="edit-date_depart" name="date_depart" type="datetime-local" required
+                 class="w-full border border-outline-variant/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-secondary-container outline-none text-sm">
+        </div>
+        <div class="space-y-1">
+          <label class="block text-label-caps text-on-surface-variant uppercase ml-1 text-xs">Date & Heure d'Arrivée *</label>
+          <input id="edit-date_arrivee" name="date_arrivee" type="datetime-local" required
+                 class="w-full border border-outline-variant/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-secondary-container outline-none text-sm">
+        </div>
+      </div>
+
+      <!-- Tarification -->
+      <div class="p-4 sm:p-6 bg-surface-container-low rounded-2xl space-y-4">
+        <p class="font-label-caps text-xs text-on-surface-variant uppercase border-b border-outline-variant/30 pb-2">Tarification par Classe (FCFA)</p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="space-y-1">
+            <label class="block text-[10px] text-on-surface-variant font-bold uppercase">Économique *</label>
+            <input id="edit-prix_economique" name="prix_economique" type="number" min="0" required
+                   class="w-full border border-outline-variant/50 bg-white rounded-lg py-2 px-3 text-sm outline-none focus:ring-2 focus:ring-secondary-container">
+          </div>
+          <div class="space-y-1">
+            <label class="block text-[10px] text-on-surface-variant font-bold uppercase">Affaires</label>
+            <input id="edit-prix_affaires" name="prix_affaires" type="number" min="0"
+                   class="w-full border border-outline-variant/50 bg-white rounded-lg py-2 px-3 text-sm outline-none focus:ring-2 focus:ring-secondary-container">
+          </div>
+          <div class="space-y-1">
+            <label class="block text-[10px] text-on-surface-variant font-bold uppercase">Première</label>
+            <input id="edit-prix_premiere" name="prix_premiere" type="number" min="0"
+                   class="w-full border border-outline-variant/50 bg-white rounded-lg py-2 px-3 text-sm outline-none focus:ring-2 focus:ring-secondary-container">
+          </div>
+        </div>
+      </div>
+
+      <!-- Places -->
+      <div class="p-4 sm:p-6 bg-surface-container-low rounded-2xl space-y-4">
+        <p class="font-label-caps text-xs text-on-surface-variant uppercase border-b border-outline-variant/30 pb-2">Nombre de Places</p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="space-y-1">
+            <label class="block text-[10px] text-on-surface-variant font-bold uppercase">Économique *</label>
+            <input id="edit-places_economique" name="places_economique" type="number" min="0" required
+                   class="w-full border border-outline-variant/50 bg-white rounded-lg py-2 px-3 text-sm outline-none focus:ring-2 focus:ring-secondary-container">
+          </div>
+          <div class="space-y-1">
+            <label class="block text-[10px] text-on-surface-variant font-bold uppercase">Affaires</label>
+            <input id="edit-places_affaires" name="places_affaires" type="number" min="0"
+                   class="w-full border border-outline-variant/50 bg-white rounded-lg py-2 px-3 text-sm outline-none focus:ring-2 focus:ring-secondary-container">
+          </div>
+          <div class="space-y-1">
+            <label class="block text-[10px] text-on-surface-variant font-bold uppercase">Première</label>
+            <input id="edit-places_premiere" name="places_premiere" type="number" min="0"
+                   class="w-full border border-outline-variant/50 bg-white rounded-lg py-2 px-3 text-sm outline-none focus:ring-2 focus:ring-secondary-container">
+          </div>
+        </div>
+      </div>
+
+      <!-- Statut + Populaire -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+        <div class="space-y-1">
+          <label class="block text-label-caps text-on-surface-variant uppercase ml-1 text-xs">Statut de Publication</label>
+          <select id="edit-statut" name="statut"
+                  class="w-full border border-outline-variant/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-secondary-container outline-none text-sm bg-white">
+            <option value="actif">Actif — visible par les clients</option>
+            <option value="complet">Complet</option>
+            <option value="annule">Annulé</option>
+            <option value="termine">Terminé</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-3 pt-2 md:pt-4">
+          <label class="relative inline-flex items-center cursor-pointer shrink-0">
+            <input id="edit-est_populaire" type="checkbox" name="est_populaire" class="sr-only peer">
+            <div class="w-11 h-6 bg-surface-container rounded-full peer peer-checked:bg-secondary-container transition-colors"></div>
+            <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow transition-all peer-checked:left-6"></div>
+          </label>
+          <div>
+            <span class="font-label-caps text-sm text-on-surface block">Mettre en avant</span>
+            <span class="text-[10px] text-on-surface-variant">Affiché sur la page d'accueil</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Boutons -->
+      <div class="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 pt-2">
+        <button type="button" onclick="closeEditModal()"
+                class="w-full sm:w-auto sm:px-8 border border-outline-variant text-on-surface-variant font-label-caps py-3 rounded-xl hover:bg-surface-container transition-colors">
+          Annuler
+        </button>
+        <button type="submit"
+                class="w-full flex-1 bg-primary-container text-white font-label-caps text-label-caps py-4 rounded-xl hover:bg-black transition-all flex items-center justify-center gap-2">
+          <i class="fa-solid fa-floppy-disk"></i> Enregistrer les modifications
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ MODAL CONFIRMATION SUPPRESSION ══ -->
+<div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] hidden items-center justify-center p-4" id="delete-modal">
+  <div class="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 max-w-sm w-full text-center">
+    <i class="fa-solid fa-triangle-exclamation text-4xl text-error mb-4 block"></i>
+    <h3 class="font-headline-md text-lg mb-2">Supprimer ce vol ?</h3>
+    <p class="text-on-surface-variant text-sm mb-6">
+      Vol <strong id="delete-vol-numero"></strong> — cette action est irréversible.
+    </p>
+    <div class="flex flex-col-reverse sm:flex-row gap-3">
+      <button onclick="closeDeleteModal()"
+              class="flex-1 border border-outline-variant text-on-surface-variant font-label-caps py-3 rounded-xl hover:bg-surface-container transition-colors">
+        Annuler
+      </button>
+      <form id="delete-form" method="POST" class="flex-1">
+        {% csrf_token %}
+        <button type="submit"
+                class="w-full bg-error text-white font-label-caps py-3 px-6 rounded-xl hover:opacity-90 transition-opacity">
+          Supprimer
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+
+  // ── Mini-modal compagnie ──
+  function openCompagnieModal() {
+    document.getElementById('comp-nom').value   = '';
+    document.getElementById('comp-code').value  = '';
+    document.getElementById('comp-error').classList.add('hidden');
+    document.getElementById('compagnie-modal').classList.remove('hidden');
+    document.getElementById('compagnie-modal').classList.add('flex');
+  }
+
+  function closeCompagnieModal() {
+    document.getElementById('compagnie-modal').classList.add('hidden');
+    document.getElementById('compagnie-modal').classList.remove('flex');
+  }
+
+  async function soumettreCompagnie() {
+    const nom  = document.getElementById('comp-nom').value.trim();
+    const code = document.getElementById('comp-code').value.trim().toUpperCase();
+    const errorEl = document.getElementById('comp-error');
+    const btn     = document.getElementById('comp-submit-btn');
+
+    if (!nom || !code) {
+      errorEl.textContent = 'Les deux champs sont obligatoires.';
+      errorEl.classList.remove('hidden');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Création...';
+
+    try {
+      const formData = new FormData();
+      formData.append('nom', nom);
+      formData.append('code_iata', code);
+      formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+      const response = await fetch("{% url 'admin_creer_compagnie' %}", {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        errorEl.textContent = data.error;
+        errorEl.classList.remove('hidden');
+      } else {
+        const select = document.getElementById('compagnie-select');
+        const nouvelleOption = select.querySelector('option[value="nouvelle"]');
+        const option = document.createElement('option');
+        option.value       = data.id;
+        option.textContent = `${data.nom} (${data.code_iata})`;
+        select.insertBefore(option, nouvelleOption);
+        select.value = data.id;
+
+        closeCompagnieModal();
+      }
+
+    } catch (err) {
+      errorEl.textContent = 'Erreur réseau. Réessayez.';
+      errorEl.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Créer';
+    }
+  }
+
+  document.getElementById('compagnie-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeCompagnieModal();
+  });
+
+  // Choisir "+ Ajouter une nouvelle compagnie" ouvre directement le modal,
+  // et remet le select sur la 1ère compagnie tant que rien n'est créé.
+  function toggleNewCompagnie(value) {
+    if (value === 'nouvelle') {
+      openCompagnieModal();
+      document.getElementById('compagnie-select').selectedIndex = 0;
+    }
+  }
+
+  // ── Modal Ajout ──
+  function openModal() {
+    const backdrop = document.getElementById('modal-backdrop');
+    const modal = document.getElementById('flight-modal');
+    backdrop.classList.remove('hidden');
+    backdrop.classList.add('flex');
+    setTimeout(() => {
+      modal.classList.remove('scale-95', 'opacity-0');
+      modal.classList.add('scale-100', 'opacity-100');
+    }, 10);
+  }
+  function closeModal() {
+    const backdrop = document.getElementById('modal-backdrop');
+    const modal = document.getElementById('flight-modal');
+    modal.classList.remove('scale-100', 'opacity-100');
+    modal.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+      backdrop.classList.add('hidden');
+      backdrop.classList.remove('flex');
+    }, 300);
+  }
+
+  // ── Modal Modifier ──
+  function openEditModal(id, numero, ville_dep, ville_arr, code_dep, code_arr,
+                        date_dep, date_arr, compagnie_id, escales,
+                        prix_eco, prix_aff, prix_pre,
+                        places_eco, places_aff, places_pre,
+                        statut, populaire) {
+
+    document.getElementById('edit-form').action = `/admin-sd/vols/${id}/modifier/`;
+    document.getElementById('edit-modal-subtitle').textContent = `${numero} — ${ville_dep} → ${ville_arr}`;
+
+    document.getElementById('edit-ville_depart').value    = ville_dep;
+    document.getElementById('edit-ville_arrivee').value   = ville_arr;
+    document.getElementById('edit-code_depart').value     = code_dep;
+    document.getElementById('edit-code_arrivee').value    = code_arr;
+    document.getElementById('edit-numero_vol').value      = numero;
+    document.getElementById('edit-date_depart').value     = date_dep;
+    document.getElementById('edit-date_arrivee').value    = date_arr;
+    document.getElementById('edit-nombre_escales').value  = escales;
+    document.getElementById('edit-prix_economique').value = prix_eco;
+    document.getElementById('edit-prix_affaires').value   = prix_aff;
+    document.getElementById('edit-prix_premiere').value   = prix_pre;
+    document.getElementById('edit-places_economique').value = places_eco;
+    document.getElementById('edit-places_affaires').value   = places_aff;
+    document.getElementById('edit-places_premiere').value   = places_pre;
+    document.getElementById('edit-statut').value          = statut;
+    document.getElementById('edit-est_populaire').checked = populaire;
+
+    document.getElementById('edit-compagnie').value = compagnie_id;
+
+    const backdrop = document.getElementById('edit-modal-backdrop');
+    const modal    = document.getElementById('edit-flight-modal');
+    backdrop.classList.remove('hidden');
+    backdrop.classList.add('flex');
+    setTimeout(() => {
+      modal.classList.remove('scale-95', 'opacity-0');
+      modal.classList.add('scale-100', 'opacity-100');
+    }, 10);
+  }
+
+  function closeEditModal() {
+    const backdrop = document.getElementById('edit-modal-backdrop');
+    const modal    = document.getElementById('edit-flight-modal');
+    modal.classList.remove('scale-100', 'opacity-100');
+    modal.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+      backdrop.classList.add('hidden');
+      backdrop.classList.remove('flex');
+    }, 300);
+  }
+
+  document.getElementById('edit-modal-backdrop').addEventListener('click', function(e) {
+    if (e.target === this) closeEditModal();
+  });
+
+  // ── Modal Suppression ──
+  function confirmDelete(id, numero) {
+    document.getElementById('delete-vol-numero').textContent = numero;
+    document.getElementById('delete-form').action = `/admin-sd/vols/${id}/supprimer/`;
+    const modal = document.getElementById('delete-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+  function closeDeleteModal() {
+    const modal = document.getElementById('delete-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+
+  // ── Recherche en temps réel ──
+  function filterTable(query) {
+    const rows = document.querySelectorAll('.vol-row');
+    const q = query.toLowerCase();
+    rows.forEach(row => {
+      row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  }
+
+  // ── Filtre par statut ──
+  function filterStatut(statut) {
+    const rows = document.querySelectorAll('.vol-row');
+    rows.forEach(row => {
+      row.style.display = (!statut || row.dataset.statut === statut) ? '' : 'none';
+    });
+  }
+
+  // ── Fermer modals en cliquant dehors ──
+  document.getElementById('modal-backdrop').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+  document.getElementById('delete-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeDeleteModal();
+  });
+
+  // ── Ouvrir modal si erreur Django ──
+  {% if messages %}
+  {% for message in messages %}
+  {% if 'Erreur' in message.message %}
+  openModal();
+  {% endif %}
+  {% endfor %}
+  {% endif %}
+</script>
+{% endblock %}

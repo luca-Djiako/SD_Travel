@@ -1,0 +1,505 @@
+{% extends 'vols/base.html' %}
+{% load static %}
+
+{% block title %}SD Travel — Réservation{% endblock %}
+
+{% block extra_css %}
+<style>
+  .card-inner {
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+    position: relative; width: 100%; height: 100%;
+  }
+  .card-flipped { transform: rotateY(180deg); }
+  .card-front, .card-back {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    position: absolute; inset: 0; border-radius: 1rem;
+  }
+  .card-back { transform: rotateY(180deg); }
+
+  .gold-shimmer { position: relative; overflow: hidden; }
+  .gold-shimmer::after {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: linear-gradient(45deg, transparent 45%, rgba(255,255,255,0.3) 50%, transparent 55%);
+    transform: rotate(45deg);
+    animation: shimmer 3s infinite;
+    pointer-events: none;
+  }
+  @keyframes shimmer {
+    0%   { transform: translateX(-100%) rotate(45deg); }
+    100% { transform: translateX(100%)  rotate(45deg); }
+  }
+
+  .res-input {
+    width: 100%;
+    background: #f2f4f7;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    color: #191c1e;
+    outline: none;
+    transition: box-shadow 0.2s ease, background 0.2s ease;
+  }
+  .res-input:focus {
+    background: #fff;
+    box-shadow: 0 0 0 2px #3281f6;
+  }
+
+  .step-circle {
+    width: 2.5rem; height: 2.5rem;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-stack-lg">
+
+  <!-- Stepper -->
+  <section class="mb-stack-lg">
+    <div class="flex items-center justify-center gap-4 max-w-3xl mx-auto">
+      <div class="flex flex-col items-center gap-2">
+        <div class="step-circle bg-primary-container text-white">1</div>
+        <span class="font-label-caps text-[10px] uppercase text-primary-container">Choix du vol</span>
+      </div>
+      <div class="h-px bg-outline-variant flex-1 mb-6"></div>
+      <div class="flex flex-col items-center gap-2">
+        <div class="step-circle border-2 border-secondary-container text-secondary">2</div>
+        <span class="font-label-caps text-[10px] uppercase text-secondary">Passagers</span>
+      </div>
+      <div class="h-px bg-outline-variant flex-1 mb-6 opacity-40"></div>
+      <div class="flex flex-col items-center gap-2 opacity-40">
+        <div class="step-circle border-2 border-outline">3</div>
+        <span class="font-label-caps text-[10px] uppercase">Paiement</span>
+      </div>
+      <div class="h-px bg-outline-variant flex-1 mb-6 opacity-40"></div>
+      <div class="flex flex-col items-center gap-2 opacity-40">
+        <div class="step-circle border-2 border-outline">4</div>
+        <span class="font-label-caps text-[10px] uppercase">Confirmation</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Layout -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+
+    <!-- Formulaire passagers -->
+    <div class="lg:col-span-8 space-y-stack-md">
+      <form method="POST" action="{% url 'creer_reservation' vol.id %}" id="passenger-form">
+        {% csrf_token %}
+        <input type="hidden" name="nombre_passagers" id="nombre_passagers_input" value="1">
+        <input type="hidden" name="methode_paiement"  id="methode_paiement_input"  value="carte">
+        <input type="hidden" name="vol_id" value="{{ vol.id }}">
+
+        <div class="bg-surface-container-lowest p-stack-md rounded-2xl shadow-[0_4px_20px_rgba(13,27,42,0.05)] border border-white/50 mb-6">
+          <h2 class="font-headline-md text-headline-md mb-stack-md text-on-surface">Détails des Passagers</h2>
+
+          <!-- Passager 1 -->
+          <div class="mb-4">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-8 h-8 rounded-full bg-secondary-container/20 flex items-center justify-center">
+                <i class="fa-solid fa-user text-secondary text-sm"></i>
+              </div>
+              <h3 class="font-label-caps text-label-caps text-on-surface-variant">PASSAGER 1 — PRINCIPAL</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+              <div class="space-y-2">
+                <label class="font-label-caps text-label-caps text-on-surface-variant block">NOM COMPLET (tel que sur passeport)</label>
+                <input name="nom_0" class="res-input" placeholder="Ex: Jean Dupont" type="text" required>
+              </div>
+              <div class="space-y-2">
+                <label class="font-label-caps text-label-caps text-on-surface-variant block">ADRESSE EMAIL</label>
+                <input name="email_0" class="res-input" placeholder="jean.dupont@email.com" type="email" required>
+              </div>
+              <div class="space-y-2">
+                <label class="font-label-caps text-label-caps text-on-surface-variant block">TÉLÉPHONE</label>
+                <input name="telephone_0" class="res-input" placeholder="+237 6 00 00 00 00" type="tel">
+              </div>
+              <div class="space-y-2">
+                <label class="font-label-caps text-label-caps text-on-surface-variant block">NUMÉRO DE PASSEPORT</label>
+                <input name="passeport_0" class="res-input" placeholder="N° Passeport" type="text">
+              </div>
+              <div class="space-y-2 md:col-span-2">
+                <label class="font-label-caps text-label-caps text-on-surface-variant block">NATIONALITÉ</label>
+                <select name="nationalite_0" class="res-input appearance-none">
+                  <option value="CM">Cameroun</option>
+                  <option value="SN">Sénégal</option>
+                  <option value="CI">Côte d'Ivoire</option>
+                  <option value="FR">France</option>
+                  <option value="US">États-Unis</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Passagers extra -->
+          <div id="extra-passengers"></div>
+
+          <button type="button" onclick="addPassenger()"
+                  class="w-full mt-4 py-3 border-2 border-dashed border-outline-variant rounded-xl text-on-surface-variant font-label-caps text-label-caps hover:border-secondary hover:text-secondary transition-all flex items-center justify-center gap-2">
+            <i class="fa-solid fa-user-plus"></i>
+            Ajouter un passager
+          </button>
+        </div>
+
+        <!-- Options -->
+        <div class="bg-surface-container-lowest p-stack-md rounded-2xl shadow-[0_4px_20px_rgba(13,27,42,0.05)] border border-white/50 mb-6">
+          <h2 class="font-headline-md mb-6" style="font-size:1.1rem;">Options supplémentaires</h2>
+          <div class="space-y-3">
+            <label class="flex items-center justify-between p-4 rounded-xl border border-surface-container hover:bg-surface-container-low cursor-pointer transition-colors">
+              <div class="flex items-center gap-3">
+                <i class="fa-solid fa-person-walking-luggage text-secondary text-lg"></i>
+                <div>
+                  <p class="font-body-md font-medium">Bagage supplémentaire (23kg)</p>
+                  <p class="text-xs text-on-surface-variant">Ajout d'un bagage en soute</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="font-price-display text-sm text-secondary">+15 000 FCFA</span>
+                <input type="checkbox" name="option_bagage" class="w-4 h-4 accent-secondary">
+              </div>
+            </label>
+            <label class="flex items-center justify-between p-4 rounded-xl border border-surface-container hover:bg-surface-container-low cursor-pointer transition-colors">
+              <div class="flex items-center gap-3">
+                <i class="fa-solid fa-chair text-secondary text-lg"></i>
+                <div>
+                  <p class="font-body-md font-medium">Siège préférentiel</p>
+                  <p class="text-xs text-on-surface-variant">Hublot ou couloir garanti</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="font-price-display text-sm text-secondary">+8 000 FCFA</span>
+                <input type="checkbox" name="option_siege" class="w-4 h-4 accent-secondary">
+              </div>
+            </label>
+            <label class="flex items-center justify-between p-4 rounded-xl border border-surface-container hover:bg-surface-container-low cursor-pointer transition-colors">
+              <div class="flex items-center gap-3">
+                <i class="fa-solid fa-shield-halved text-secondary text-lg"></i>
+                <div>
+                  <p class="font-body-md font-medium">Assurance annulation</p>
+                  <p class="text-xs text-on-surface-variant">Remboursement en cas d'annulation</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="font-price-display text-sm text-secondary">+25 000 FCFA</span>
+                <input type="checkbox" name="option_assurance" class="w-4 h-4 accent-secondary">
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex justify-between items-center p-stack-md bg-surface-container-low rounded-2xl">
+          <a href="{% url 'liste_vols' %}" class="flex items-center gap-2 text-on-surface-variant font-label-caps text-label-caps hover:text-primary transition-colors" style="text-decoration:none;">
+            <i class="fa-solid fa-arrow-left"></i> Modifier le vol
+          </a>
+          <button type="button" onclick="openPaymentModal()"
+                  class="bg-secondary-container text-on-secondary-container font-label-caps text-label-caps px-10 py-4 rounded-xl gold-shimmer shadow-lg hover:shadow-xl transition-all font-bold">
+            Payer maintenant ({{ vol.prix|floatformat:0|default:"1 250 000" }} FCFA)
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Résumé vol -->
+    <div class="lg:col-span-4">
+      <div class="bg-primary-container text-white p-stack-md rounded-2xl shadow-xl sticky top-28">
+        <h3 class="font-headline-md text-headline-md mb-6 text-secondary-fixed">Résumé du voyage</h3>
+        <div class="space-y-6">
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="font-label-caps text-label-caps opacity-60">DÉPART</p>
+              <p class="text-2xl font-bold">{{ vol.code_depart|default:"DSS" }}</p>
+              <p class="text-xs opacity-80">{{ vol.ville_depart|default:"Dakar Blaise Diagne" }}</p>
+            </div>
+            <div class="flex flex-col items-center flex-1 px-4">
+              <i class="fa-solid fa-plane text-secondary-fixed text-xl"></i>
+              <div class="w-full h-px bg-white/20 my-2 relative">
+                <div class="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-secondary-fixed"></div>
+              </div>
+              <p class="text-[10px] font-label-caps">{{ vol.duree|default:"6H 45M" }}</p>
+            </div>
+            <div class="text-right">
+              <p class="font-label-caps text-label-caps opacity-60">ARRIVÉE</p>
+              <p class="text-2xl font-bold">{{ vol.code_arrivee|default:"CDG" }}</p>
+              <p class="text-xs opacity-80">{{ vol.ville_arrivee|default:"Paris Charles de G." }}</p>
+            </div>
+          </div>
+          <div class="pt-6 border-t border-white/10 space-y-3">
+            <div class="flex justify-between">
+              <span class="opacity-60 font-body-md">Vol</span>
+              <span class="font-bold">{{ vol.numero|default:"AF 719" }} • {{ vol.classe|default:"Business" }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="opacity-60 font-body-md">Date</span>
+              <span class="font-bold">{{ vol.date_depart|date:"d M Y"|default:"24 Oct 2024" }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="opacity-60 font-body-md">Passagers</span>
+              <span class="font-bold" id="nb-passagers">1</span>
+            </div>
+          </div>
+          <div class="pt-6 border-t border-white/10">
+            <div class="flex justify-between items-end">
+              <div>
+                <p class="font-label-caps text-label-caps opacity-60">TOTAL</p>
+                <p class="text-3xl font-price-display text-secondary-fixed">{{ vol.prix|floatformat:0|default:"1 250 000" }} <span class="text-sm">FCFA</span></p>
+              </div>
+              <i class="fa-solid fa-shield-halved text-4xl opacity-20"></i>
+            </div>
+          </div>
+          <div class="pt-4 border-t border-white/10 space-y-2">
+            <div class="flex items-center gap-2 text-xs text-on-primary-container">
+              <i class="fa-solid fa-lock text-secondary-fixed"></i>
+              Paiement 100% sécurisé
+            </div>
+            <div class="flex items-center gap-2 text-xs text-on-primary-container">
+              <i class="fa-solid fa-headset text-secondary-fixed"></i>
+              Support 24/7 disponible
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+
+<!-- ══ MODAL PAIEMENT ══ -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-primary-container/60 backdrop-blur-md hidden opacity-0 transition-opacity duration-300" id="payment-modal">
+  <div class="bg-surface rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300">
+
+    <div class="px-8 py-6 border-b border-surface-container flex justify-between items-center">
+      <h2 class="font-headline-md text-headline-md">Paiement Sécurisé</h2>
+      <button onclick="closePaymentModal()" class="w-10 h-10 rounded-full hover:bg-surface-container transition-colors flex items-center justify-center">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="p-8">
+      <div class="flex justify-between items-center mb-8">
+        <span class="font-body-md text-on-surface-variant">Montant à régler</span>
+        <span class="font-price-display text-2xl text-primary">{{ vol.prix|floatformat:0|default:"1 250 000" }} FCFA</span>
+      </div>
+
+      <!-- Tabs -->
+      <div class="flex gap-2 mb-8 bg-surface-container-low p-1 rounded-xl">
+        <button id="tab-card" onclick="switchPayTab('card')" class="flex-1 py-3 rounded-lg font-label-caps text-label-caps bg-white shadow-sm text-primary transition-all">CARTE BANCAIRE</button>
+        <button id="tab-mobile" onclick="switchPayTab('mobile')" class="flex-1 py-3 rounded-lg font-label-caps text-label-caps text-on-surface-variant hover:bg-white/50 transition-all">MOBILE MONEY</button>
+      </div>
+
+      <!-- Carte bancaire -->
+      <div id="content-card">
+        <div class="h-48 w-full mb-6" style="perspective:1000px;">
+          <div class="card-inner rounded-2xl shadow-xl" id="credit-card">
+            <div class="card-front p-6 flex flex-col justify-between bg-gradient-to-br from-primary-container to-on-surface text-white">
+              <div class="flex justify-between items-start">
+                <i class="fa-solid fa-credit-card text-4xl text-secondary-fixed"></i>
+                <div class="w-12 h-8 bg-secondary-fixed/20 rounded-md"></div>
+              </div>
+              <div class="space-y-4">
+                <p class="text-xl tracking-[0.2em] font-mono" id="card-number-display">**** **** **** ****</p>
+                <div class="flex justify-between items-end">
+                  <p class="text-sm font-label-caps opacity-60" id="card-name-display">NOM DU TITULAIRE</p>
+                  <p class="text-sm font-label-caps" id="card-exp-display">MM/YY</p>
+                </div>
+              </div>
+            </div>
+            <div class="card-back p-6 flex flex-col justify-center bg-gradient-to-br from-on-surface to-primary-container text-white">
+              <div class="w-full h-10 bg-black/40"></div>
+              <div class="mt-8 flex justify-end">
+                <div class="w-16 h-8 bg-white/10 rounded flex items-center justify-center">
+                  <p class="text-sm font-mono italic opacity-60" id="cvc-display">***</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="col-span-2">
+            <label class="text-[10px] font-label-caps text-on-surface-variant block mb-1">NUMÉRO DE CARTE</label>
+            <input class="w-full border-b border-outline-variant focus:border-secondary transition-all bg-transparent py-2 px-0 outline-none font-mono" placeholder="0000 0000 0000 0000" type="text" maxlength="19" oninput="formatCard(this)">
+          </div>
+          <div>
+            <label class="text-[10px] font-label-caps text-on-surface-variant block mb-1">NOM DU TITULAIRE</label>
+            <input class="w-full border-b border-outline-variant focus:border-secondary transition-all bg-transparent py-2 px-0 outline-none uppercase" placeholder="JEAN DUPONT" type="text" oninput="document.getElementById('card-name-display').textContent=this.value.toUpperCase()||'NOM DU TITULAIRE'">
+          </div>
+          <div>
+            <label class="text-[10px] font-label-caps text-on-surface-variant block mb-1">EXPIRATION</label>
+            <input class="w-full border-b border-outline-variant focus:border-secondary transition-all bg-transparent py-2 px-0 outline-none" placeholder="MM/YY" type="text" maxlength="5" oninput="document.getElementById('card-exp-display').textContent=this.value||'MM/YY'">
+          </div>
+          <div>
+            <label class="text-[10px] font-label-caps text-on-surface-variant block mb-1">CVC</label>
+            <input class="w-full border-b border-outline-variant focus:border-secondary transition-all bg-transparent py-2 px-0 outline-none" placeholder="***" type="password" maxlength="4" onfocus="flipCard(true)" onblur="flipCard(false)" oninput="document.getElementById('cvc-display').textContent='•'.repeat(this.value.length)||'***'">
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Money -->
+      <div id="content-mobile" class="hidden">
+        <div class="grid grid-cols-3 gap-4 mb-6">
+          <button onclick="selectMobile(this)" class="mobile-opt flex flex-col items-center gap-3 p-4 rounded-2xl border-2 border-surface-container hover:border-secondary transition-all">
+            <div class="w-14 h-14 rounded-xl flex items-center justify-center text-white font-bold text-sm" style="background:#FF6600;">OM</div>
+            <span class="text-[10px] font-label-caps">ORANGE MONEY</span>
+          </button>
+          <button onclick="selectMobile(this)" class="mobile-opt flex flex-col items-center gap-3 p-4 rounded-2xl border-2 border-surface-container hover:border-secondary transition-all">
+            <div class="w-14 h-14 rounded-xl flex items-center justify-center text-white font-bold text-sm" style="background:#00A1E4;">Wave</div>
+            <span class="text-[10px] font-label-caps">WAVE</span>
+          </button>
+          <button onclick="selectMobile(this)" class="mobile-opt flex flex-col items-center gap-3 p-4 rounded-2xl border-2 border-surface-container hover:border-secondary transition-all">
+            <div class="w-14 h-14 rounded-xl flex items-center justify-center text-black font-bold text-sm" style="background:#FFCC00;">MTN</div>
+            <span class="text-[10px] font-label-caps">MTN MOMO</span>
+          </button>
+        </div>
+        <div class="space-y-2">
+          <label class="text-[10px] font-label-caps text-on-surface-variant block">NUMÉRO DE TÉLÉPHONE</label>
+          <input class="w-full bg-surface-container-low border-none rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-secondary transition-all" placeholder="+237 6 00 00 00 00" type="tel">
+        </div>
+        <p class="text-xs text-on-surface-variant mt-3">Vous recevrez une notification sur votre téléphone pour confirmer le paiement.</p>
+      </div>
+
+      <button onclick="processPayment()" class="w-full mt-8 bg-secondary-container text-on-secondary-container font-label-caps text-label-caps py-4 rounded-xl gold-shimmer shadow-lg font-bold flex items-center justify-center gap-2">
+        <i class="fa-solid fa-lock"></i> Confirmer le Paiement
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ ÉCRAN SUCCÈS ══ -->
+<div class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-surface hidden opacity-0 transition-opacity duration-700" id="success-screen">
+  <div class="max-w-md w-full text-center space-y-8 transform translate-y-8 transition-transform duration-700" id="success-content">
+    <div class="w-24 h-24 mx-auto rounded-full border-4 border-green-500 flex items-center justify-center">
+      <i class="fa-solid fa-circle-check text-6xl text-green-500"></i>
+    </div>
+    <div class="space-y-2">
+      <h1 class="font-display-lg text-4xl text-primary">Voyage réservé !</h1>
+      <p class="text-on-surface-variant font-body-lg">Réf : <span class="font-bold text-primary">{{ reservation.reference|default:"SD-XXXX-TX" }}</span></p>
+    </div>
+    <div class="bg-surface-container p-6 rounded-2xl flex items-start gap-4 text-left">
+      <i class="fa-solid fa-envelope text-on-tertiary-container mt-1"></i>
+      <div>
+        <p class="font-bold">Billet envoyé par email</p>
+        <p class="text-sm text-on-surface-variant">Vérifiez votre boîte de réception ainsi que vos courriers indésirables.</p>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+      <a href="{% url 'confirmation' %}" class="bg-primary-container text-white py-4 rounded-xl font-label-caps text-label-caps flex items-center justify-center gap-2 hover:opacity-90 transition-opacity" style="text-decoration:none;">
+        <i class="fa-solid fa-download"></i> Télécharger
+      </a>
+      <a href="https://wa.me/237670574973" target="_blank" rel="noopener" class="bg-[#25D366] text-white py-4 rounded-xl font-label-caps text-label-caps flex items-center justify-center gap-2 hover:opacity-90 transition-opacity" style="text-decoration:none;">
+        <i class="fa-brands fa-whatsapp"></i> Partager
+      </a>
+    </div>
+    <a href="{% url 'home' %}" class="text-on-surface-variant font-label-caps text-label-caps underline hover:text-primary block pt-4">Retour à l'accueil</a>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  window.openPaymentModal = function() {
+    const m = document.getElementById('payment-modal');
+    m.classList.remove('hidden');
+    setTimeout(() => { m.classList.remove('opacity-0'); m.querySelector('.transform').classList.remove('scale-95'); }, 10);
+  };
+  window.closePaymentModal = function() {
+    const m = document.getElementById('payment-modal');
+    m.classList.add('opacity-0'); m.querySelector('.transform').classList.add('scale-95');
+    setTimeout(() => m.classList.add('hidden'), 300);
+  };
+  document.getElementById('payment-modal').addEventListener('click', function(e){ if(e.target===this) closePaymentModal(); });
+
+  window.switchPayTab = function(type) {
+    const ac='flex-1 py-3 rounded-lg font-label-caps text-label-caps bg-white shadow-sm text-primary transition-all';
+    const in_='flex-1 py-3 rounded-lg font-label-caps text-label-caps text-on-surface-variant hover:bg-white/50 transition-all';
+    if(type==='card'){
+      document.getElementById('tab-card').className=ac; document.getElementById('tab-mobile').className=in_;
+      document.getElementById('content-card').classList.remove('hidden'); document.getElementById('content-mobile').classList.add('hidden');
+    } else {
+      document.getElementById('tab-mobile').className=ac; document.getElementById('tab-card').className=in_;
+      document.getElementById('content-mobile').classList.remove('hidden'); document.getElementById('content-card').classList.add('hidden');
+    }
+  };
+
+  window.flipCard = function(f){ document.getElementById('credit-card').classList[f?'add':'remove']('card-flipped'); };
+
+  window.formatCard = function(input){
+    let v=input.value.replace(/\D/g,'').substring(0,16);
+    input.value=v.replace(/(.{4})/g,'$1 ').trim();
+    document.getElementById('card-number-display').textContent=input.value||'**** **** **** ****';
+  };
+
+  window.selectMobile = function(btn){
+    document.querySelectorAll('.mobile-opt').forEach(b=>{b.classList.remove('border-secondary');b.classList.add('border-surface-container');});
+    btn.classList.remove('border-surface-container'); btn.classList.add('border-secondary');
+  };
+
+  window.processPayment = function(){
+    const activeMobile = document.querySelector('.mobile-opt.border-secondary');
+    const activeTab = document.getElementById('content-mobile').classList.contains('hidden') ? 'carte' : 'mobile_money';
+    let methode = activeTab;
+    if (activeMobile) {
+      const label = activeMobile.querySelector('span')?.textContent?.trim()?.toLowerCase();
+      if (label?.includes('orange')) methode = 'orange_money';
+      else if (label?.includes('wave'))   methode = 'wave';
+      else if (label?.includes('mtn'))    methode = 'mtn_momo';
+    }
+    document.getElementById('methode_paiement_input').value  = methode;
+    document.getElementById('nombre_passagers_input').value  = pc;
+    closePaymentModal();
+    const btn = document.querySelector('[onclick="openPaymentModal()"]');
+    if (btn) { btn.textContent = 'Traitement en cours...'; btn.disabled = true; }
+    document.getElementById('passenger-form').submit();
+  };
+
+  let pc=1;
+  window.addPassenger = function(){
+    pc++;
+    const d=document.createElement('div');
+    d.className='mt-6 pt-6 border-t border-surface-container'; d.id='passenger-'+pc;
+    d.innerHTML=`
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-secondary-container/20 flex items-center justify-center">
+            <i class="fa-solid fa-user text-secondary text-sm"></i>
+          </div>
+          <h3 class="font-label-caps text-label-caps text-on-surface-variant">PASSAGER ${pc}</h3>
+        </div>
+        <button type="button" onclick="removePassenger(${pc})" class="text-error w-8 h-8 flex items-center justify-center rounded-full hover:bg-error/10 transition-colors">
+          <i class="fa-solid fa-trash text-sm"></i>
+        </button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+        <div class="space-y-2">
+          <label class="font-label-caps text-label-caps text-on-surface-variant block">NOM COMPLET</label>
+          <input name="nom_${pc-1}" class="res-input" placeholder="Ex: Marie Dupont" type="text">
+        </div>
+        <div class="space-y-2">
+          <label class="font-label-caps text-label-caps text-on-surface-variant block">N° PASSEPORT</label>
+          <input name="passeport_${pc-1}" class="res-input" placeholder="N° Passeport" type="text">
+        </div>
+      </div>`;
+    document.getElementById('extra-passengers').appendChild(d);
+    document.getElementById('nb-passagers').textContent=pc;
+  };
+
+  window.removePassenger = function(id){
+    const el=document.getElementById('passenger-'+id); if(el) el.remove();
+    pc=Math.max(1,pc-1); document.getElementById('nb-passagers').textContent=pc;
+  };
+})();
+</script>
+{% endblock %}

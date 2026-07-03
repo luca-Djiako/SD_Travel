@@ -1,0 +1,213 @@
+{% load static %}
+{% url 'home' as url_home %}
+{% url 'liste_vols' as url_vols %}
+{% url 'tarifs' as url_tarifs %}
+{% url 'contact' as url_contact %}
+
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config-nav">
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          "secondary-fixed": "#ffdea6",
+          "on-secondary-fixed": "#271900",
+          "secondary-container": "#fcbf40",
+          "on-secondary-container": "#6f4f00",
+          "primary-container": "#0f1c2c",
+          "on-primary-container": "#778598",
+          "surface": "#f7f9fc",
+          "on-surface": "#191c1e",
+          "on-surface-variant": "#44474c",
+          "secondary": "#7c5800",
+          "outline": "#74777d",
+          "outline-variant": "#c4c6cc",
+        },
+        spacing: {
+          "margin-desktop": "40px",
+          "container-max": "1280px",
+        },
+        fontFamily: {
+          "display-lg": ["Plus Jakarta Sans"],
+          "label-caps": ["Space Grotesk"],
+          "body-md": ["DM Sans"],
+        },
+        fontSize: {
+          "headline-md": ["24px", { lineHeight: "1.3", fontWeight: "700" }],
+          "label-caps": ["12px", { lineHeight: "1.0", letterSpacing: "0.1em", fontWeight: "700" }],
+        }
+      }
+    }
+  }
+</script>
+
+<style>
+  .gold-shimmer-nav {
+    position: relative;
+    overflow: hidden;
+    background: #E2A829;
+    color: #0D1B2A;
+    transition: all 0.3s ease;
+  }
+  .gold-shimmer-nav::after {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+    transform: rotate(45deg);
+    transition: all 0.6s ease;
+    pointer-events: none;
+  }
+  .gold-shimmer-nav:hover::after { left: 100%; top: 100%; }
+
+  /* ── Boutons icône (Paramètres / Déconnexion) — desktop ─────── */
+  .icon-btn-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 9999px;
+    color: #44474c;
+    background: transparent;
+    transition: background .2s ease, color .2s ease, transform .15s ease;
+  }
+  .icon-btn-nav:hover {
+    background: rgba(124,88,0,0.08);
+    color: #7c5800;
+  }
+  .icon-btn-nav:active { transform: scale(.92); }
+
+  /* Mobile menu */
+  .mobile-menu {
+    display: none;
+    flex-direction: column;
+    background: white;
+    border-top: 1px solid #e0e3e6;
+    padding: 1rem 2.5rem 1.5rem;
+    gap: 1rem;
+  }
+  .mobile-menu.open { display: flex; }
+  .mobile-menu-link-icon {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+  }
+  .hamburger-bars { display: none; flex-direction: column; gap: 5px; cursor: pointer; background: none; border: none; padding: 4px; }
+  .hamburger-bars span { display: block; width: 22px; height: 2px; background: #191c1e; border-radius: 2px; transition: all 0.3s; }
+  .hamburger-bars.open span:nth-child(1) { transform: rotate(45deg) translate(5px,5px); }
+  .hamburger-bars.open span:nth-child(2) { opacity: 0; }
+  .hamburger-bars.open span:nth-child(3) { transform: rotate(-45deg) translate(5px,-5px); }
+
+  @media (max-width: 768px) {
+    .nav-desktop-links { display: none !important; }
+    .nav-desktop-auth  { display: none !important; }
+    .hamburger-bars    { display: flex !important; }
+  }
+</style>
+
+<nav class="docked full-width top-0 sticky z-50 bg-surface/80 backdrop-blur-xl border-b border-white/10 shadow-[0_4px_20px_rgba(13,27,42,0.05)]" id="navbar">
+  <div class="flex justify-between items-center w-full px-margin-desktop py-4 max-w-container-max mx-auto">
+
+    <!-- Logo -->
+    <a href="{{ url_home }}" class="flex items-center gap-2 text-headline-md font-display-lg text-secondary" style="text-decoration:none;">
+      <i class="fa-solid fa-plane-departure" style="color: rgb(255, 212, 59);"></i>
+      <span class="font-display-lg text-headline-md tracking-tight">SD Travel</span>
+    </a>
+
+    <!-- Liens desktop -->
+    <div class="nav-desktop-links hidden md:flex items-center gap-8">
+      <a class="font-label-caps text-label-caps transition-colors {% if request.resolver_match.url_name == 'home' %}text-secondary border-b-2 border-secondary pb-1 font-bold{% else %}text-on-surface-variant hover:text-secondary{% endif %}"
+         href="{{ url_home }}">Accueil</a>
+      <a class="font-label-caps text-label-caps transition-colors {% if request.resolver_match.url_name == 'liste_vols' %}text-secondary border-b-2 border-secondary pb-1 font-bold{% else %}text-on-surface-variant hover:text-secondary{% endif %}"
+         href="{{ url_vols }}">Vols</a>
+      <a class="font-label-caps text-label-caps transition-colors {% if request.resolver_match.url_name == 'tarifs' %}text-secondary border-b-2 border-secondary pb-1 font-bold{% else %}text-on-surface-variant hover:text-secondary{% endif %}"
+         href="{{ url_tarifs }}">Tarifs</a>
+      {% if user.is_authenticated %}
+      <a class="font-label-caps text-label-caps transition-colors {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'admin_dashboard' %}text-secondary border-b-2 border-secondary pb-1 font-bold{% else %}text-on-surface-variant hover:text-secondary{% endif %}"
+         href="{% if user.role == 'admin' %}{% url 'admin_dashboard' %}{% else %}{% url 'dashboard' %}{% endif %}">Réservations</a>
+      {% endif %}
+      <a class="font-label-caps text-label-caps transition-colors {% if request.resolver_match.url_name == 'contact' %}text-secondary border-b-2 border-secondary pb-1 font-bold{% else %}text-on-surface-variant hover:text-secondary{% endif %}"
+         href="{{ url_contact }}">Contact</a>
+    </div>
+
+    <!-- Auth desktop -->
+    <div class="nav-desktop-auth flex items-center gap-3">
+      {% if user.is_authenticated %}
+        <a href="{{ url_vols }}" class="gold-shimmer-nav px-6 py-2.5 rounded-lg font-label-caps text-label-caps flex items-center gap-2 active:scale-95 transition-transform" style="text-decoration:none;">
+          <i class="fa-solid fa-plane-departure" style="color: rgb(255, 212, 59);"></i>
+          Réserver
+        </a>
+        <a href="{% url 'profil' %}" class="icon-btn-nav" title="Paramètres" aria-label="Paramètres">
+          <i class="fa-solid fa-gear"></i>
+        </a>
+        <a href="{% url 'logout' %}" class="icon-btn-nav" title="Déconnexion" aria-label="Déconnexion">
+          <i class="fa-solid fa-sign-out-alt"></i>
+        </a>
+      {% else %}
+        <a href="{% url 'login' %}" class="text-on-surface-variant font-label-caps text-label-caps hover:text-secondary transition-colors" style="text-decoration:none;">Se connecter</a>
+        <a href="{{ url_vols }}" class="gold-shimmer-nav px-6 py-2.5 rounded-lg font-label-caps text-label-caps flex items-center gap-2 active:scale-95 transition-transform" style="text-decoration:none;">
+          <i class="fa-solid fa-plane-departure" style="color: rgb(255, 212, 59);"></i>
+          Réserver
+        </a>
+      {% endif %}
+    </div>
+
+    <!-- Hamburger mobile -->
+    <button class="hamburger-bars" id="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+
+  </div>
+
+  <!-- Menu mobile -->
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="{{ url_home }}"    class="font-label-caps text-label-caps text-on-surface-variant hover:text-secondary" style="text-decoration:none; padding:.5rem 0;">Accueil</a>
+    <a href="{{ url_vols }}"   class="font-label-caps text-label-caps text-on-surface-variant hover:text-secondary" style="text-decoration:none; padding:.5rem 0;">Vols</a>
+    <a href="{{ url_tarifs }}" class="font-label-caps text-label-caps text-on-surface-variant hover:text-secondary" style="text-decoration:none; padding:.5rem 0;">Tarifs</a>
+    {% if user.is_authenticated %}
+    <a href="{% if user.role == 'admin' %}{% url 'admin_dashboard' %}{% else %}{% url 'dashboard' %}{% endif %}"
+       class="font-label-caps text-label-caps text-on-surface-variant hover:text-secondary" style="text-decoration:none; padding:.5rem 0;">Réservations</a>
+    {% endif %}
+    <a href="{{ url_contact }}" class="font-label-caps text-label-caps text-on-surface-variant hover:text-secondary" style="text-decoration:none; padding:.5rem 0;">Contact</a>
+    <hr style="border-color:#e0e3e6; margin:.25rem 0;">
+    {% if user.is_authenticated %}
+      <a href="{% url 'profil' %}" class="mobile-menu-link-icon font-label-caps text-label-caps text-on-surface-variant" style="text-decoration:none; padding:.5rem 0;">
+        <i class="fa-solid fa-gear"></i> Paramètres
+      </a>
+      <a href="{% url 'logout' %}" class="mobile-menu-link-icon font-label-caps text-label-caps" style="color:#ba1a1a; text-decoration:none; padding:.5rem 0;">
+        <i class="fa-solid fa-sign-out-alt"></i> Déconnexion
+      </a>
+    {% else %}
+      <a href="{% url 'login' %}"    class="font-label-caps text-label-caps text-on-surface-variant" style="text-decoration:none; padding:.5rem 0;">Se connecter</a>
+      <a href="{{ url_vols }}" class="gold-shimmer-nav px-4 py-2.5 rounded-lg font-label-caps text-label-caps flex items-center justify-center gap-2 mt-2" style="text-decoration:none;">
+        <i class="fa-solid fa-plane-departure" style="color: rgb(255, 212, 59);"></i> Réserver
+      </a>
+    {% endif %}
+  </div>
+</nav>
+
+<script>
+(function(){
+  const hamburger  = document.getElementById('hamburger');
+  const mobileMenu = document.getElementById('mobileMenu');
+  if (!hamburger || !mobileMenu) return;
+  hamburger.addEventListener('click', () => {
+    hamburger.classList.toggle('open');
+    mobileMenu.classList.toggle('open');
+  });
+
+  // Navbar scroll effect
+  const navbar = document.getElementById('navbar');
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 30) {
+      navbar.style.background = 'rgba(247,249,252,0.98)';
+      navbar.style.boxShadow = '0 4px 20px rgba(13,27,42,0.1)';
+    } else {
+      navbar.style.background = 'rgba(247,249,252,0.8)';
+      navbar.style.boxShadow = '0 4px 20px rgba(13,27,42,0.05)';
+    }
+  });
+})();
+</script>

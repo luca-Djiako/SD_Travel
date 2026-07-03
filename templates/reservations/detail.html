@@ -1,0 +1,376 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}SD Travel — Détail Réservation {{ reservation.reference }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #eceef1;
+  }
+  .info-row:last-child { border-bottom: none; }
+
+  .timeline-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.35rem 0.85rem;
+    border-radius: 9999px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-stack-lg">
+
+  <!-- Breadcrumb -->
+  <nav class="flex items-center gap-2 mb-8 font-label-caps text-[11px] text-on-surface-variant">
+    <a href="{% url 'home' %}" class="hover:text-primary transition-colors" style="text-decoration:none;">Accueil</a>
+    {% comment %} <span class="material-symbols-outlined text-[14px]">chevron_right</span> {% endcomment %}
+    <i class="fa-solid fa-chevron-right" style="color: rgb(255, 212, 59);"></i>
+    <a href="{% url 'dashboard' %}" class="hover:text-primary transition-colors" style="text-decoration:none;">Mon Espace</a>
+    {% comment %} <span class="material-symbols-outlined text-[14px]">chevron_right</span> {% endcomment %}
+    <i class="fa-solid fa-chevron-right" style="color: rgb(255, 212, 59);"></i>
+    <span class="text-primary font-bold">{{ reservation.reference|default:"SD-8842-TX" }}</span>
+  </nav>
+
+  <!-- Header page -->
+  <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-stack-lg">
+    <div>
+      <h1 class="font-display-lg text-display-lg-mobile text-primary mb-1">
+        Réservation {{ reservation.reference|default:"SD-8842-TX" }}
+      </h1>
+      <p class="font-body-md text-on-surface-variant">
+        Effectuée le {{ reservation.date_reservation|date:"d M Y à H:i"|default:"22 Oct 2025 à 09:14" }}
+      </p>
+    </div>
+
+    <!-- Statut -->
+    {% if reservation.statut == 'confirme' %}
+    <span class="status-badge bg-green-100 text-green-700">
+      <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+      Confirmée
+    </span>
+    {% elif reservation.statut == 'en_attente' %}
+    <span class="status-badge bg-amber-100 text-amber-700">
+      <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+      En attente
+    </span>
+    {% elif reservation.statut == 'annule' %}
+    <span class="status-badge bg-red-100 text-red-700">
+      <span class="w-2 h-2 rounded-full bg-red-500"></span>
+      Annulée
+    </span>
+    {% else %}
+    <span class="status-badge bg-green-100 text-green-700">
+      <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+      Confirmée
+    </span>
+    {% endif %}
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+
+    <!-- Colonne principale -->
+    <div class="lg:col-span-8 space-y-gutter">
+
+      <!-- Carte vol principal -->
+      <div class="bg-primary-container rounded-2xl p-8 text-white relative overflow-hidden">
+        <div class="absolute inset-0 opacity-5 pointer-events-none">
+          {% comment %} <span class="material-symbols-outlined absolute -right-8 -bottom-8" style="font-size:16rem;">flight</span> {% endcomment %}
+            <i class="fa-brands fa-avianex" style="color: rgb(30, 48, 80);"></i>
+
+        </div>
+
+        <div class="relative z-10">
+          <div class="flex justify-between items-start mb-8">
+            <div>
+              <p class="font-label-caps text-[10px] text-secondary-fixed mb-1">{{ reservation.vol.compagnie|default:"Air France" }}</p>
+              <p class="font-price-display text-secondary-fixed">{{ reservation.vol.numero|default:"AF 719" }}</p>
+            </div>
+            <div class="text-right">
+              <p class="font-label-caps text-[10px] text-on-primary-container mb-1">CLASSE</p>
+              <p class="font-price-display text-secondary-fixed">{{ reservation.classe|upper|default:"BUSINESS" }}</p>
+            </div>
+          </div>
+
+          <!-- Timeline vol -->
+          <div class="flex items-center gap-4">
+            <div>
+              <p class="font-price-display text-4xl font-bold">{{ reservation.vol.code_depart|default:"DSS" }}</p>
+              <p class="font-label-caps text-[10px] text-on-primary-container mt-1">{{ reservation.vol.ville_depart|default:"Dakar" }}</p>
+              <p class="font-body-md font-bold mt-2">{{ reservation.vol.heure_depart|default:"10:30" }}</p>
+            </div>
+
+            <div class="flex-1 flex flex-col items-center gap-1 px-4">
+              <p class="font-label-caps text-[10px] text-on-primary-container">{{ reservation.vol.duree|default:"6H 45M" }}</p>
+              <div class="w-full flex items-center gap-2">
+                <div class="h-px bg-white/25 flex-1"></div>
+                <span class="material-symbols-outlined text-secondary-fixed" style="font-size:1.5rem; font-variation-settings:'FILL' 1;">flight</span>
+                <div class="h-px bg-white/25 flex-1"></div>
+              </div>
+              <p class="font-label-caps text-[10px] text-on-primary-container">
+                {% if reservation.vol.escales == 0 %}Direct
+                {% else %}{{ reservation.vol.escales }} escale{% endif %}
+              </p>
+            </div>
+
+            <div class="text-right">
+              <p class="font-price-display text-4xl font-bold">{{ reservation.vol.code_arrivee|default:"CDG" }}</p>
+              <p class="font-label-caps text-[10px] text-on-primary-container mt-1">{{ reservation.vol.ville_arrivee|default:"Paris" }}</p>
+              <p class="font-body-md font-bold mt-2">{{ reservation.vol.heure_arrivee|default:"17:15" }}</p>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-6 border-t border-white/10 flex gap-6">
+            <div>
+              <p class="font-label-caps text-[10px] text-on-primary-container">DATE DE DÉPART</p>
+              <p class="font-body-md font-bold mt-1">{{ reservation.vol.date_depart|date:"d M Y"|default:"24 Oct 2024" }}</p>
+            </div>
+            <div>
+              <p class="font-label-caps text-[10px] text-on-primary-container">TERMINAL</p>
+              <p class="font-body-md font-bold mt-1">{{ reservation.vol.terminal|default:"Terminal 2E" }}</p>
+            </div>
+            <div>
+              <p class="font-label-caps text-[10px] text-on-primary-container">AVION</p>
+              <p class="font-body-md font-bold mt-1">{{ reservation.vol.type_avion|default:"Boeing 777" }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Passagers -->
+      <div class="bg-white rounded-2xl p-6 border border-surface-container shadow-[0_4px_20px_rgba(13,27,42,0.05)]">
+        <h3 class="font-headline-md mb-5" style="font-size:1.1rem;">
+          Passagers ({{ reservation.passagers.count|default:"1" }})
+        </h3>
+
+        <div class="space-y-4">
+          {% for passager in reservation.passagers.all %}
+          <div class="flex items-center justify-between p-4 rounded-xl bg-surface-container-low">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-secondary-fixed/30 flex items-center justify-center font-bold text-secondary">
+                {{ passager.prenom|first|upper }}{{ passager.nom|first|upper }}
+              </div>
+              <div>
+                <p class="font-body-md font-bold">{{ passager.prenom }} {{ passager.nom }}</p>
+                <p class="text-xs text-on-surface-variant">Passeport : {{ passager.numero_passeport }}</p>
+              </div>
+            </div>
+            <span class="font-label-caps text-[10px] text-on-surface-variant">
+              {% if forloop.first %}PASSAGER PRINCIPAL{% else %}PASSAGER {{ forloop.counter }}{% endif %}
+            </span>
+          </div>
+          {% empty %}
+          <!-- Statique -->
+          <div class="flex items-center justify-between p-4 rounded-xl bg-surface-container-low">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-secondary-fixed/30 flex items-center justify-center font-bold text-secondary">JD</div>
+              <div>
+                <p class="font-body-md font-bold">Jean Dupont</p>
+                <p class="text-xs text-on-surface-variant">Passeport : XX000000</p>
+              </div>
+            </div>
+            <span class="font-label-caps text-[10px] text-on-surface-variant">PASSAGER PRINCIPAL</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Timeline statut -->
+      <div class="bg-white rounded-2xl p-6 border border-surface-container shadow-[0_4px_20px_rgba(13,27,42,0.05)]">
+        <h3 class="font-headline-md mb-6" style="font-size:1.1rem;">Historique de la réservation</h3>
+        <div class="space-y-0">
+
+          <div class="flex gap-4">
+            <div class="flex flex-col items-center">
+              <div class="timeline-dot bg-green-500"></div>
+              <div class="w-px h-12 bg-surface-container mt-1"></div>
+            </div>
+            <div class="pb-6">
+              <p class="font-body-md font-bold text-sm">Réservation créée</p>
+              <p class="text-xs text-on-surface-variant mt-1">{{ reservation.date_reservation|date:"d M Y à H:i"|default:"22 Oct 2024 à 09:14" }}</p>
+            </div>
+          </div>
+
+          <div class="flex gap-4">
+            <div class="flex flex-col items-center">
+              <div class="timeline-dot bg-green-500"></div>
+              <div class="w-px h-12 bg-surface-container mt-1"></div>
+            </div>
+            <div class="pb-6">
+              <p class="font-body-md font-bold text-sm">Paiement confirmé</p>
+              <p class="text-xs text-on-surface-variant mt-1">{{ reservation.date_paiement|date:"d M Y à H:i"|default:"22 Oct 2024 à 09:18" }}</p>
+            </div>
+          </div>
+
+          <div class="flex gap-4">
+            <div class="flex flex-col items-center">
+              <div class="timeline-dot bg-green-500"></div>
+              <div class="w-px h-12 bg-surface-container mt-1"></div>
+            </div>
+            <div class="pb-6">
+              <p class="font-body-md font-bold text-sm">Billet électronique envoyé</p>
+              <p class="text-xs text-on-surface-variant mt-1">Email envoyé à {{ reservation.passager.email|default:"jean.dupont@email.com" }}</p>
+            </div>
+          </div>
+
+          <div class="flex gap-4">
+            <div class="flex flex-col items-center">
+              <div class="timeline-dot {% if reservation.statut == 'confirme' %}bg-secondary-container{% else %}bg-surface-container-high{% endif %}"></div>
+            </div>
+            <div>
+              <p class="font-body-md font-bold text-sm {% if reservation.statut != 'confirme' %}text-on-surface-variant{% endif %}">
+                Vol prévu
+              </p>
+              <p class="text-xs text-on-surface-variant mt-1">
+                {{ reservation.vol.date_depart|date:"d M Y"|default:"24 Oct 2024" }} — {{ reservation.vol.heure_depart|default:"10:30" }}
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Colonne droite -->
+    <div class="lg:col-span-4 space-y-gutter">
+
+      <!-- Récap financier -->
+      <div class="bg-white rounded-2xl p-6 border border-surface-container shadow-[0_4px_20px_rgba(13,27,42,0.05)]">
+        <h3 class="font-headline-md mb-5" style="font-size:1rem;">Récapitulatif</h3>
+        <div class="space-y-0">
+          <div class="info-row">
+            <span class="text-on-surface-variant font-body-md text-sm">Prix du vol</span>
+            <span class="font-body-md font-bold">{{ reservation.prix_vol|floatformat:0|default:"1 200 000" }} FCFA</span>
+          </div>
+          <div class="info-row">
+            <span class="text-on-surface-variant font-body-md text-sm">Taxes & frais</span>
+            <span class="font-body-md font-bold">{{ reservation.taxes|floatformat:0|default:"50 000" }} FCFA</span>
+          </div>
+          {% if reservation.option_bagage %}
+          <div class="info-row">
+            <span class="text-on-surface-variant font-body-md text-sm">Bagage suppl.</span>
+            <span class="font-body-md font-bold">15 000 FCFA</span>
+          </div>
+          {% endif %}
+          <div class="info-row border-t-2 border-surface-container mt-2 pt-2">
+            <span class="font-label-caps text-label-caps">TOTAL</span>
+            <span class="font-price-display text-xl text-secondary">{{ reservation.montant_total|floatformat:0|default:"1 250 000" }} FCFA</span>
+          </div>
+        </div>
+        <div class="mt-4 flex items-center gap-2 text-xs text-green-600 bg-green-50 rounded-lg p-3">
+          {% comment %} {% endcomment %} <i class="fa-solid fa-check-circle text-[16px]" style="color: #10B981;"></i> 
+          Paiement confirmé — {{ reservation.mode_paiement|default:"Mobile Money" }}
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="bg-white rounded-2xl p-6 border border-surface-container shadow-[0_4px_20px_rgba(13,27,42,0.05)] space-y-3">
+        <h3 class="font-headline-md mb-4" style="font-size:1rem;">Actions</h3>
+
+        <a href="{% url 'confirmation' %}"
+           class="w-full flex items-center gap-3 p-4 rounded-xl border border-surface-container hover:bg-surface-container-low transition-colors font-body-md font-medium"
+           style="text-decoration:none; color:inherit;">
+          <span class="material-symbols-outlined text-secondary">download</span>
+          Télécharger le billet
+        </a>
+
+        <button onclick="window.print()"
+                class="w-full flex items-center gap-3 p-4 rounded-xl border border-surface-container hover:bg-surface-container-low transition-colors font-body-md font-medium">
+          <span class="material-symbols-outlined text-secondary">print</span>
+          Imprimer
+        </button>
+
+        <a href="https://wa.me/237670574973?text=Bonjour%20SD%20Travel%2C%20r%C3%A9f%20{{ reservation.reference|default:'SD-8842-TX' }}"
+           target="_blank" rel="noopener"
+           class="w-full flex items-center gap-3 p-4 rounded-xl bg-[#25D366]/10 hover:bg-[#25D366]/20 transition-colors font-body-md font-medium"
+           style="text-decoration:none; color:#15803d;">
+          <svg width="20" height="20" fill="#25D366" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+          Contacter le support
+        </a>
+
+        {% if reservation.statut == 'en_attente' or reservation.statut == 'confirme' %}
+        <div class="border-t border-surface-container pt-3">
+          <button onclick="confirmCancel()"
+                  class="w-full flex items-center gap-3 p-4 rounded-xl border border-error/30 hover:bg-error-container/20 transition-colors font-body-md font-medium text-error">
+            <i class="fa-solid fa-ban" style="color: rgb(255, 60, 59);"></i>
+            Annuler la réservation
+          </button>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Aide -->
+      <div class="bg-primary-container rounded-2xl p-6 text-white">
+        <p class="font-label-caps text-[10px] text-secondary-fixed mb-2">BESOIN D'AIDE ?</p>
+        <h4 class="font-body-md font-bold mb-2">Support disponible 24/7</h4>
+        <a href="{% url 'contact' %}"
+           class="inline-flex items-center gap-2 bg-secondary-container text-on-secondary-container font-label-caps text-label-caps px-4 py-2 rounded-lg text-[11px] hover:bg-secondary-fixed transition-colors mt-2"
+           style="text-decoration:none;">
+          <span class="material-symbols-outlined text-[15px]">support_agent</span>
+          Nous contacter
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<!-- Modal confirmation annulation -->
+<div class="fixed inset-0 z-50 hidden items-center justify-center bg-primary-container/50 backdrop-blur-sm p-4" id="cancel-modal">
+  <div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
+    <div class="text-center mb-6">
+      <span class="material-symbols-outlined text-6xl text-error">warning</span>
+      <h3 class="font-headline-md mt-4 mb-2">Annuler la réservation ?</h3>
+      <p class="text-on-surface-variant font-body-md">Cette action est irréversible. Des frais d'annulation peuvent s'appliquer selon les conditions tarifaires.</p>
+    </div>
+    <div class="flex gap-3">
+      <button onclick="closeCancelModal()"
+              class="flex-1 border border-outline-variant text-on-surface-variant py-3 rounded-xl font-label-caps hover:bg-surface-container transition-colors">
+        Garder
+      </button>
+      <a href="{% url 'reservation_annuler' reservation.id|default:1 %}"
+         class="flex-1 bg-error text-white py-3 rounded-xl font-label-caps flex items-center justify-center hover:opacity-90 transition-opacity"
+         style="text-decoration:none;">
+        Confirmer l'annulation
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function confirmCancel() {
+    const m = document.getElementById('cancel-modal');
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+  }
+  function closeCancelModal() {
+    const m = document.getElementById('cancel-modal');
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+  }
+  document.getElementById('cancel-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeCancelModal();
+  });
+</script>
+{% endblock %}

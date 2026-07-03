@@ -1,0 +1,390 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}SD Travel — Réservation Confirmée{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Checkmark animé */
+  @keyframes scaleIn {
+    0%   { transform: scale(0); opacity: 0; }
+    60%  { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes strokeDraw {
+    0%   { stroke-dashoffset: 100; }
+    100% { stroke-dashoffset: 0; }
+  }
+  .check-circle {
+    animation: scaleIn 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.2s both;
+  }
+  .check-path {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: strokeDraw 0.5s ease 0.7s forwards;
+  }
+
+  /* Ticket perforé */
+  .ticket {
+    position: relative;
+  }
+  .ticket::before,
+  .ticket::after {
+    content: '';
+    position: absolute;
+    left: -12px; right: -12px;
+    height: 24px;
+    background: #f2f4f7;
+    border-radius: 9999px;
+  }
+  .ticket::before { top: -12px; }
+  .ticket::after  { bottom: -12px; }
+
+  /* Perforations */
+  .perforations {
+    display: flex;
+    gap: 6px;
+    overflow: hidden;
+  }
+  .perforation {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #f2f4f7;
+    flex-shrink: 0;
+  }
+
+  /* Barcode */
+  .barcode {
+    display: flex;
+    gap: 2px;
+    align-items: flex-end;
+    height: 40px;
+    justify-content: center;
+  }
+  .barcode-bar {
+    background: #191c1e;
+    border-radius: 1px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-stack-lg">
+
+  <!-- Stepper complet -->
+  <section class="mb-stack-lg">
+    <div class="flex items-center justify-center gap-4 max-w-3xl mx-auto">
+      {% for step, label in steps %}
+      <div class="flex flex-col items-center gap-2">
+        <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold
+          {% if forloop.last %}bg-green-500 text-white{% else %}bg-primary-container text-white{% endif %}">
+          {% if forloop.last %}
+            <span class="material-symbols-outlined text-[18px]" style="font-variation-settings:'FILL' 1;">check</span>
+          {% else %}
+            {{ forloop.counter }}
+          {% endif %}
+        </div>
+        <span class="font-label-caps text-[10px] uppercase
+          {% if forloop.last %}text-green-600{% else %}text-primary-container{% endif %}">
+          {{ label }}
+        </span>
+      </div>
+      {% if not forloop.last %}
+      <div class="h-px bg-primary-container flex-1 mb-6"></div>
+      {% endif %}
+      {% empty %}
+      <!-- Stepper statique -->
+      <div class="flex flex-col items-center gap-2">
+        <div class="w-10 h-10 rounded-full bg-primary-container text-white flex items-center justify-center font-bold">1</div>
+        <span class="font-label-caps text-[10px] uppercase text-primary-container">Choix du vol</span>
+      </div>
+      <div class="h-px bg-primary-container flex-1 mb-6"></div>
+      <div class="flex flex-col items-center gap-2">
+        <div class="w-10 h-10 rounded-full bg-primary-container text-white flex items-center justify-center font-bold">2</div>
+        <span class="font-label-caps text-[10px] uppercase text-primary-container">Passagers</span>
+      </div>
+      <div class="h-px bg-primary-container flex-1 mb-6"></div>
+      <div class="flex flex-col items-center gap-2">
+        <div class="w-10 h-10 rounded-full bg-primary-container text-white flex items-center justify-center font-bold">3</div>
+        <span class="font-label-caps text-[10px] uppercase text-primary-container">Paiement</span>
+      </div>
+      <div class="h-px bg-primary-container flex-1 mb-6"></div>
+      <div class="flex flex-col items-center gap-2">
+        <div class="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-bold">
+          <span class="material-symbols-outlined text-[18px]" style="font-variation-settings:'FILL' 1;">check</span>
+        </div>
+        <span class="font-label-caps text-[10px] uppercase text-green-600">Confirmation</span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+
+    <!-- Colonne principale -->
+    <div class="lg:col-span-8 space-y-gutter">
+
+      <!-- Bannière succès -->
+      <div class="bg-green-50 border border-green-200 rounded-2xl p-8 flex flex-col md:flex-row items-center gap-6">
+        <!-- Checkmark SVG animé -->
+        <div class="check-circle flex-shrink-0">
+          <svg width="80" height="80" viewBox="0 0 80 80">
+            <circle cx="40" cy="40" r="36" fill="#dcfce7" stroke="#16a34a" stroke-width="3"/>
+            <path class="check-path" d="M24 40 L35 51 L56 29"
+                  fill="none" stroke="#16a34a" stroke-width="4"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="font-display-lg text-display-lg-mobile text-green-800 mb-1">Voyage Confirmé !</h1>
+          <p class="font-body-md text-green-700">
+            Votre réservation
+            <strong>{{ reservation.reference|default:"SD-8842-TX" }}</strong>
+            a été confirmée avec succès.
+          </p>
+          <p class="text-sm text-green-600 mt-2 flex items-center gap-1">
+            {% comment %} <span class="material-symbols-outlined text-[16px]">mail</span> {% endcomment %}
+            <i class="fa-solid fa-envelope-open" style="color: rgb(30, 48, 80);"></i>
+            Un email de confirmation a été envoyé à
+            <strong>{{ reservation.passager.email|default:"votre adresse email" }}</strong>
+          </p>
+        </div>
+      </div>
+
+      <!-- Billet de vol (design ticket) -->
+      <div class="bg-white rounded-2xl shadow-[0_4px_20px_rgba(13,27,42,0.08)] overflow-hidden border border-surface-container">
+
+        <!-- En-tête billet navy -->
+        <div class="bg-primary-container p-6 text-white relative overflow-hidden">
+          <div class="absolute top-0 right-0 opacity-5">
+            {% comment %} <span class="material-symbols-outlined" style="font-size:12rem;">flight</span> {% endcomment %}
+            <i class="fa-brands fa-avianex" style="color: rgb(30, 48, 80);"></i>
+          </div>
+          <div class="relative z-10 flex justify-between items-start">
+            <div>
+              <p class="font-label-caps text-[10px] text-secondary-fixed mb-1">BILLET ÉLECTRONIQUE</p>
+              <h2 class="font-display-lg text-headline-md text-white">SD Travel</h2>
+            </div>
+            <div class="text-right">
+              <p class="font-label-caps text-[10px] text-on-primary-container">RÉFÉRENCE</p>
+              <p class="font-price-display text-secondary-fixed text-xl">{{ reservation.reference|default:"SD-8842-TX" }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Corps billet -->
+        <div class="p-8">
+
+          <!-- Itinéraire -->
+          <div class="flex items-center gap-0 mb-8">
+            <div class="text-center">
+              <p class="font-price-display text-4xl font-bold text-primary">{{ reservation.vol.code_depart|default:"DSS" }}</p>
+              <p class="font-label-caps text-[10px] text-on-surface-variant mt-1">{{ reservation.vol.ville_depart|default:"Dakar" }}</p>
+              <p class="font-body-md font-bold text-sm mt-1">{{ reservation.vol.heure_depart|default:"10:30" }}</p>
+            </div>
+
+            <div class="flex-1 px-6 flex flex-col items-center gap-2">
+              <div class="perforations">
+                {% for i in "123456789012345678901234" %}
+                <div class="perforation opacity-30"></div>
+                {% endfor %}
+              </div>
+              <div class="flex items-center gap-2 w-full">
+                <div class="h-px bg-outline-variant flex-1"></div>
+                <i class="fa-solid fa-plane" style="color: rgb(30, 48, 80); font-size: 1.5rem;"></i>
+                <div class="h-px bg-outline-variant flex-1"></div>
+              </div>
+              <p class="font-label-caps text-[10px] text-on-surface-variant">{{ reservation.vol.duree|default:"6H 45M" }} • Direct</p>
+            </div>
+
+            <div class="text-center">
+              <p class="font-price-display text-4xl font-bold text-primary">{{ reservation.vol.code_arrivee|default:"CDG" }}</p>
+              <p class="font-label-caps text-[10px] text-on-surface-variant mt-1">{{ reservation.vol.ville_arrivee|default:"Paris" }}</p>
+              <p class="font-body-md font-bold text-sm mt-1">{{ reservation.vol.heure_arrivee|default:"17:15" }}</p>
+            </div>
+          </div>
+
+          <!-- Ligne de séparation perforée -->
+          <div class="relative my-6">
+            <div class="border-t-2 border-dashed border-surface-container-high"></div>
+            <div class="absolute -left-8 -top-3 w-6 h-6 rounded-full bg-surface-container-low"></div>
+            <div class="absolute -right-8 -top-3 w-6 h-6 rounded-full bg-surface-container-low"></div>
+          </div>
+
+          <!-- Détails -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+            <div>
+              <p class="font-label-caps text-[10px] text-on-surface-variant mb-1">DATE</p>
+              <p class="font-body-md font-bold">{{ reservation.vol.date_depart|date:"d M Y"|default:"24 Oct 2024" }}</p>
+            </div>
+            <div>
+              <p class="font-label-caps text-[10px] text-on-surface-variant mb-1">VOL</p>
+              <p class="font-body-md font-bold">{{ reservation.vol.numero|default:"AF 719" }}</p>
+            </div>
+            <div>
+              <p class="font-label-caps text-[10px] text-on-surface-variant mb-1">CLASSE</p>
+              <p class="font-body-md font-bold">{{ reservation.classe|upper|default:"BUSINESS" }}</p>
+            </div>
+            <div>
+              <p class="font-label-caps text-[10px] text-on-surface-variant mb-1">PASSAGERS</p>
+              <p class="font-body-md font-bold">{{ reservation.nb_passagers|default:"1" }}</p>
+            </div>
+          </div>
+
+          <!-- Passager principal -->
+          <div class="bg-surface-container-low rounded-xl p-4 flex items-center gap-4 mb-6">
+            <div class="w-10 h-10 rounded-full bg-secondary-fixed/30 flex items-center justify-center font-bold text-secondary">
+              {{ reservation.passager.prenom|first|upper|default:"J" }}{{ reservation.passager.nom|first|upper|default:"D" }}
+            </div>
+            <div>
+              <p class="font-body-md font-bold">{{ reservation.passager.get_full_name|default:"Jean Dupont" }}</p>
+              <p class="text-xs text-on-surface-variant">Passeport : {{ reservation.passager.passeport|default:"XX000000" }}</p>
+            </div>
+            <span class="ml-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-700 text-[10px] font-label-caps">
+              <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> CONFIRMÉ
+            </span>
+          </div>
+
+          <!-- Barcode décoratif -->
+          <div class="flex flex-col items-center gap-2 pt-4 border-t border-surface-container">
+            <div class="barcode">
+              {% for w in "2133121312213213123212312213123121321231321" %}
+              <div class="barcode-bar"
+                   style="width:{{ w }}px; height:{% cycle '35px' '25px' '40px' '30px' '38px' %}"></div>
+              {% endfor %}
+            </div>
+            <p class="font-label-caps text-[9px] text-on-surface-variant tracking-widest">
+              {{ reservation.reference|default:"SD8842TX" }} • {{ reservation.vol.numero|default:"AF719" }} • {{ reservation.vol.date_depart|date:"ddMY"|default:"241024" }}
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Informations de vol -->
+      <div class="bg-white rounded-2xl p-6 border border-surface-container shadow-[0_4px_20px_rgba(13,27,42,0.05)]">
+        <h3 class="font-label-caps text-label-caps text-on-surface-variant mb-4">INFORMATIONS IMPORTANTES</h3>
+        <div class="space-y-3">
+          <div class="flex items-start gap-3">
+            <i class="fa-solid fa-check-circle text-secondary" style="font-size: 1.25rem;"></i>
+            <p class="font-body-md text-sm">Présentez-vous à l'aéroport <strong>au moins 2h avant</strong> le départ pour un vol international.</p>
+          </div>
+          <div class="flex items-start gap-3">
+            <i class="fa-solid fa-check-circle text-secondary" style="font-size: 1.25rem;"></i>
+            <p class="font-body-md text-sm">Votre <strong>passeport valide</strong> et ce billet électronique sont requis à l'enregistrement.</p>
+          </div>
+          <div class="flex items-start gap-3">
+            <i class="fa-solid fa-check-circle text-secondary" style="font-size: 1.25rem;"></i>
+            <p class="font-body-md text-sm">Franchise bagages : <strong>1 bagage cabine (7kg)</strong> + <strong>1 bagage soute (23kg)</strong> en Business.</p>
+          </div>
+          <div class="flex items-start gap-3">
+            <i class="fa-solid fa-info-circle text-on-tertiary-container" style="font-size: 1.25rem;"></i>
+            <p class="font-body-md text-sm">Pour toute modification, contactez-nous au moins 24h avant le départ via WhatsApp ou par email.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Colonne droite : récapitulatif + actions -->
+    <div class="lg:col-span-4 space-y-gutter">
+
+      <!-- Récap paiement -->
+      <div class="bg-white rounded-2xl p-6 border border-surface-container shadow-[0_4px_20px_rgba(13,27,42,0.05)]">
+        <h3 class="font-headline-md mb-5" style="font-size:1rem;">Récapitulatif du paiement</h3>
+        <div class="space-y-3 mb-4">
+          <div class="flex justify-between font-body-md text-sm">
+            <span class="text-on-surface-variant">Vol ({{ reservation.nb_passagers|default:"1" }} pax)</span>
+            <span>{{ reservation.prix_vol|floatformat:0|default:"1 200 000" }} FCFA</span>
+          </div>
+          <div class="flex justify-between font-body-md text-sm">
+            <span class="text-on-surface-variant">Taxes & frais</span>
+            <span>{{ reservation.taxes|floatformat:0|default:"50 000" }} FCFA</span>
+          </div>
+          {% if reservation.option_bagage %}
+          <div class="flex justify-between font-body-md text-sm">
+            <span class="text-on-surface-variant">Bagage supplémentaire</span>
+            <span>15 000 FCFA</span>
+          </div>
+          {% endif %}
+        </div>
+        <div class="border-t border-surface-container pt-4 flex justify-between items-center">
+          <span class="font-label-caps text-label-caps">TOTAL PAYÉ</span>
+          <span class="font-price-display text-xl text-secondary">{{ reservation.montant_total|floatformat:0|default:"1 250 000" }} FCFA</span>
+        </div>
+        <div class="mt-3 flex items-center gap-2 text-xs text-green-600">
+          <i class="fa-solid fa-check-circle text-[16px]" style="color: #10B981;"></i>
+          Paiement confirmé le {{ reservation.date_paiement|date:"d M Y à H:i"|default:"24 Oct 2024 à 14:32" }}
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="bg-white rounded-2xl p-6 border border-surface-container shadow-[0_4px_20px_rgba(13,27,42,0.05)] space-y-3">
+        <h3 class="font-headline-md mb-5" style="font-size:1rem;">Actions</h3>
+
+        <button onclick="window.print()"
+                class="w-full flex items-center gap-3 p-4 rounded-xl border border-surface-container hover:bg-surface-container-low transition-colors font-body-md font-medium">
+          <i class="fa-solid fa-print text-secondary"></i>
+          Imprimer le billet
+        </button>
+
+        <a href="#" download
+           class="w-full flex items-center gap-3 p-4 rounded-xl border border-surface-container hover:bg-surface-container-low transition-colors font-body-md font-medium"
+           style="text-decoration:none;">
+          <i class="fa-solid fa-download text-secondary"></i>
+          Télécharger en PDF
+        </a>
+
+        <a href="https://wa.me/237670574973?text=Bonjour%20j'ai%20r%C3%A9serv%C3%A9%20le%20vol%20{{ reservation.reference|default:'SD-8842-TX' }}"
+           target="_blank" rel="noopener"
+           class="w-full flex items-center gap-3 p-4 rounded-xl bg-[#25D366]/10 hover:bg-[#25D366]/20 transition-colors font-body-md font-medium"
+           style="text-decoration:none; color:#16a34a;">
+          <svg width="20" height="20" fill="#25D366" viewBox="0 0 24 24">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+          </svg>
+          Partager sur WhatsApp
+        </a>
+
+        <div class="border-t border-surface-container pt-3">
+          <a href="{% url 'dashboard' %}"
+             class="w-full flex items-center gap-3 p-4 rounded-xl bg-primary-container text-white hover:bg-black transition-colors font-label-caps text-label-caps"
+             style="text-decoration:none;">
+            <span class="material-symbols-outlined">dashboard</span>
+            Voir mes réservations
+          </a>
+        </div>
+      </div>
+
+      <!-- Support -->
+      <div class="bg-primary-container rounded-2xl p-6 text-white relative overflow-hidden">
+        <div class="absolute -right-4 -bottom-4 opacity-10">
+          <span class="material-symbols-outlined" style="font-size:8rem;">support_agent</span>
+        </div>
+        <div class="relative z-10">
+          <p class="font-label-caps text-[10px] text-secondary-fixed mb-2">BESOIN D'AIDE ?</p>
+          <h4 class="font-headline-md text-white mb-2" style="font-size:1rem;">Support 24/7</h4>
+          <p class="text-on-primary-container text-sm mb-4">Notre équipe est disponible pour toute assistance.</p>
+          <a href="{% url 'contact' %}"
+             class="inline-flex items-center gap-2 bg-secondary-container text-on-secondary-container font-label-caps text-label-caps px-4 py-2 rounded-lg hover:bg-secondary-fixed transition-colors"
+             style="text-decoration:none;">
+            <span class="material-symbols-outlined text-[16px]">chat</span>
+            Nous contacter
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Animation des barres du barcode
+  document.querySelectorAll('.barcode-bar').forEach((bar, i) => {
+    const heights = [35,20,40,28,35,18,40,32,25,38,22,40,30,35,20,38,25,40,28,35];
+    bar.style.height = (heights[i % heights.length]) + 'px';
+  });
+</script>
+{% endblock %}

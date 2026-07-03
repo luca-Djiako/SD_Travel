@@ -1,0 +1,803 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}SD Travel — Tarifs & Grille de Prix{% endblock %}
+{% block meta_description %}Découvrez nos tarifs transparents par destination. Comparez Économie, Affaires et Première Classe.{% endblock %}
+
+{% block extra_css %}
+<style>
+
+/* ── Hero ──────────────────────────────────────────────────── */
+.tarifs-hero {
+  background: #0f1c2c;
+  padding: 4rem 0 5rem;
+  text-align: center;
+}
+
+.tarifs-hero__title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.02em;
+  margin-bottom: 1rem;
+  animation: fadeUp .7s ease both;
+}
+
+.tarifs-hero__sub {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1.05rem;
+  color: #778598;
+  max-width: 560px;
+  margin: 0 auto;
+  animation: fadeUp .7s ease .15s both;
+}
+
+/* ── Section commune ──────────────────────────────────────── */
+.section { padding: 4rem 0; }
+.section__inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 40px;
+}
+
+.section__title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  font-weight: 800;
+  color: #191c1e;
+  text-align: center;
+  margin-bottom: 0.75rem;
+}
+
+.section__subtitle {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1rem;
+  color: #44474c;
+  text-align: center;
+  max-width: 560px;
+  margin: 0 auto 3rem;
+}
+
+/* ── Comparatif des 3 classes ─────────────────────────────── */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: -2.5rem;
+  position: relative;
+  z-index: 10;
+}
+
+.pricing-card {
+  background: #fff;
+  border-radius: 1.5rem;
+  padding: 2.25rem;
+  border: 1px solid #e0e3e6;
+  box-shadow: 0 8px 32px rgba(13,27,42,0.08);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, opacity .6s ease, transform .6s ease;
+}
+
+.pricing-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 50px rgba(124,88,0,0.16);
+}
+
+.pricing-card--featured {
+  border: 2px solid #7c5800;
+  transform: scale(1.04);
+}
+
+.pricing-card--featured:hover { transform: scale(1.04) translateY(-6px); }
+
+.pricing-card__badge {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #7c5800;
+  color: #fff;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 16px;
+  border-radius: 9999px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.pricing-card__badge::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,.65), transparent);
+  animation: badgeShimmer 2.6s ease-in-out infinite;
+}
+
+.pricing-card__name {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #191c1e;
+  margin-bottom: 0.4rem;
+}
+
+.pricing-card--featured .pricing-card__name { color: #7c5800; }
+
+.pricing-card__desc {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.88rem;
+  color: #74777d;
+  margin-bottom: 1.5rem;
+}
+
+.pricing-card__from {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #74777d;
+  margin-bottom: 0.25rem;
+}
+
+.pricing-card__price {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #191c1e;
+  margin-bottom: 1.5rem;
+}
+
+.pricing-card--featured .pricing-card__price { color: #7c5800; }
+
+.pricing-card__price small {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #74777d;
+}
+
+.pricing-features {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+  margin-bottom: 1.5rem;
+}
+
+.pricing-features li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem;
+  color: #191c1e;
+}
+
+.pricing-features .material-symbols-outlined {
+  font-size: 18px;
+  color: #7c5800;
+  font-variation-settings: 'FILL' 1;
+  flex-shrink: 0;
+}
+
+/* ── Filtre région ─────────────────────────────────────────── */
+.region-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: center;
+  margin-bottom: 2.5rem;
+}
+
+.region-chip {
+  padding: 0.55rem 1.25rem;
+  border-radius: 9999px;
+  border: 1.5px solid #c4c6cc;
+  background: #fff;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #44474c;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.region-chip:hover,
+.region-chip.active {
+  border-color: #7c5800;
+  background: rgba(253,190,64,0.12);
+  color: #7c5800;
+}
+
+/* ── Cards destinations ────────────────────────────────────── */
+.dest-tarif-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.dest-tarif-card {
+  background: #fff;
+  border-radius: 1.25rem;
+  overflow: hidden;
+  border: 1px solid #e0e3e6;
+  box-shadow: 0 4px 20px rgba(13,27,42,0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, opacity .6s ease;
+}
+
+.dest-tarif-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 14px 42px rgba(124,88,0,0.14);
+}
+
+.dest-tarif-card__header {
+  padding: 1.5rem;
+  background: #0f1c2c;
+  position: relative;
+  overflow: hidden;
+}
+
+.dest-tarif-card__route {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffdea6;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dest-tarif-card__route .material-symbols-outlined { font-size: 16px; }
+
+.dest-tarif-card:hover .dest-tarif-card__route i {
+  transform: translateX(4px);
+  transition: transform .35s ease;
+}
+
+.dest-tarif-card__city {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #fff;
+  margin-top: 0.5rem;
+}
+
+.dest-tarif-card__compagnie {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.8rem;
+  color: #778598;
+  margin-top: 0.25rem;
+}
+
+.dest-tarif-card__body {
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.dest-tarif-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid #f2f4f7;
+}
+
+.dest-tarif-row:last-of-type { border-bottom: none; }
+
+.dest-tarif-row__label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #74777d;
+}
+
+.dest-tarif-row__price {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #191c1e;
+}
+
+.dest-tarif-row__price--highlight { color: #7c5800; }
+
+.dest-tarif-card__cta {
+  display: block;
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: #0f1c2c;
+  color: #fff;
+  text-align: center;
+  border-radius: 0.65rem;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.dest-tarif-card__cta:hover { background: #2d3133; transform: translateY(-2px); }
+
+/* ── Pourquoi nos tarifs ───────────────────────────────────── */
+.why-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+.why-card {
+  text-align: center;
+  padding: 2rem 1.5rem;
+  transition: opacity .6s ease, transform .6s ease;
+}
+
+.why-icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  background: rgba(124,88,0,0.08);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+  animation: iconFloat 3.4s ease-in-out infinite;
+  transition: background .3s ease, transform .3s ease;
+}
+
+.why-card:hover .why-icon {
+  background: rgba(124,88,0,0.16);
+  transform: scale(1.08);
+}
+
+.why-grid .why-card:nth-child(2) .why-icon { animation-delay: .4s; }
+.why-grid .why-card:nth-child(3) .why-icon { animation-delay: .8s; }
+.why-grid .why-card:nth-child(4) .why-icon { animation-delay: 1.2s; }
+
+.why-icon .material-symbols-outlined {
+  font-size: 1.75rem;
+  color: #7c5800;
+}
+
+.why-card h4 {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #191c1e;
+  margin-bottom: 0.5rem;
+}
+
+.why-card p {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.85rem;
+  color: #44474c;
+  line-height: 1.55;
+}
+
+/* ── CTA final ─────────────────────────────────────────────── */
+.cta-final {
+  background: linear-gradient(135deg, #0f1c2c 0%, #1a2c40 100%);
+  border-radius: 1.5rem;
+  padding: 3.5rem 2.5rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: opacity .6s ease, transform .6s ease;
+}
+
+.cta-final::before {
+  content: '';
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  top: -140px;
+  left: -110px;
+  background: radial-gradient(circle, rgba(253,190,64,0.22), transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: ctaGlowDrift 9s ease-in-out infinite alternate;
+}
+
+.cta-final::after {
+  content: '';
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  bottom: -120px;
+  right: -90px;
+  background: radial-gradient(circle, rgba(124,88,0,0.18), transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: ctaGlowDrift 11s ease-in-out infinite alternate-reverse;
+}
+
+.cta-final h2 {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 0.75rem;
+  position: relative;
+}
+
+.cta-final p {
+  font-family: 'DM Sans', sans-serif;
+  color: #778598;
+  margin-bottom: 2rem;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+  position: relative;
+}
+
+.cta-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  position: relative;
+}
+
+.ripple-trigger {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: rgba(255,255,255,.65);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  animation: rippleAnim .6s ease-out forwards;
+  pointer-events: none;
+}
+
+/* ── Empty state ───────────────────────────────────────────── */
+.empty-tarifs {
+  text-align: center;
+  padding: 4rem 0;
+  color: #74777d;
+}
+
+/* ── Reveal au scroll ──────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.pricing-grid .pricing-card:nth-child(2) { transition-delay: .12s; }
+.pricing-grid .pricing-card:nth-child(3) { transition-delay: .24s; }
+
+.dest-tarif-grid .dest-tarif-card:nth-child(2) { transition-delay: .1s; }
+.dest-tarif-grid .dest-tarif-card:nth-child(3) { transition-delay: .2s; }
+.dest-tarif-grid .dest-tarif-card:nth-child(4) { transition-delay: .1s; }
+.dest-tarif-grid .dest-tarif-card:nth-child(5) { transition-delay: .2s; }
+.dest-tarif-grid .dest-tarif-card:nth-child(6) { transition-delay: .3s; }
+
+.why-grid .why-card:nth-child(2) { transition-delay: .1s; }
+.why-grid .why-card:nth-child(3) { transition-delay: .2s; }
+.why-grid .why-card:nth-child(4) { transition-delay: .3s; }
+
+/* ── Keyframes ─────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes badgeShimmer {
+  0% { transform: translateX(-160%) skewX(-15deg); }
+  100% { transform: translateX(280%) skewX(-15deg); }
+}
+
+@keyframes iconFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes ctaGlowDrift {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(50px, 35px); }
+}
+
+@keyframes rippleAnim {
+  to { transform: translate(-50%, -50%) scale(16); opacity: 0; }
+}
+
+/* ── Accessibilité : mouvement réduit ─────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .tarifs-hero__title,
+  .tarifs-hero__sub,
+  .why-icon,
+  .pricing-card__badge::after,
+  .cta-final::before,
+  .cta-final::after,
+  .reveal {
+    animation: none !important;
+    transition: none !important;
+  }
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .pricing-grid { grid-template-columns: 1fr; max-width: 420px; margin-left: auto; margin-right: auto; margin-top: -2rem; }
+  .pricing-card--featured { transform: scale(1); }
+  .pricing-card--featured:hover { transform: translateY(-6px); }
+  .dest-tarif-grid { grid-template-columns: repeat(2, 1fr); }
+  .why-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .section__inner { padding: 0 1rem; }
+  .section { padding: 3rem 0; }
+  .dest-tarif-grid { grid-template-columns: 1fr; }
+  .why-grid { grid-template-columns: 1fr; }
+  .cta-buttons { flex-direction: column; }
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# ── HERO ───────────────────────────────────────────────────── #}
+<section class="tarifs-hero">
+  <div class="section__inner">
+    <h1 class="tarifs-hero__title">Une tarification transparente</h1>
+    <p class="tarifs-hero__sub">
+      Découvrez nos prix par classe et par destination, sans frais cachés.
+      Comparez et trouvez l'offre qui vous correspond.
+    </p>
+  </div>
+</section>
+
+{# ── COMPARATIF 3 CLASSES ──────────────────────────────────── #}
+<section class="section" style="padding-top:0;">
+  <div class="section__inner">
+    <div class="pricing-grid">
+
+      <!-- Économie -->
+      <div class="pricing-card reveal">
+        <p class="pricing-card__name">Économie</p>
+        <p class="pricing-card__desc">L'essentiel pour voyager malin.</p>
+        <p class="pricing-card__from">À PARTIR DE</p>
+        <p class="pricing-card__price">
+          <span class="count-up" data-target="{{ prix_min_eco|default:150000 }}">0</span> <small>FCFA</small>
+        </p>
+        <ul class="pricing-features">
+          <li><i class="fa-solid fa-circle-check" style="color: rgb(11, 192, 76);"></i> 1 Bagage cabine (7kg)</li>
+          <li><i class="fa-solid fa-circle-check" style="color: rgb(11, 192, 76);"></i> Repas standard inclus</li>
+          <li><i class="fa-solid fa-circle-check" style="color: rgb(11, 192, 76);"></i> Sélection de siège standard</li>
+        </ul>
+      </div>
+
+      <!-- Affaires -->
+      <div class="pricing-card pricing-card--featured reveal">
+        <span class="pricing-card__badge">Le plus populaire</span>
+        <p class="pricing-card__name">Affaires</p>
+        <p class="pricing-card__desc">Le luxe du voyage productif.</p>
+        <p class="pricing-card__from">À PARTIR DE</p>
+        <p class="pricing-card__price">
+          <span class="count-up" data-target="{{ prix_min_affaires|default:450000 }}">0</span> <small>FCFA</small>
+        </p>
+        <ul class="pricing-features">
+          <li><i class="fa-solid fa-circle-check" style="color: rgb(11, 192, 76);"></i> 2 Bagages soute (23kg)</li>
+          <li><i class="fa-solid fa-circle-check" style="color: rgb(11, 192, 76);"></i> Menu gastronomique</li>
+          <li><i class="fa-solid fa-circle-check" style="color: rgb(11, 192, 76);"></i> Accès Lounge VIP</li>
+          <li><i class="fa-solid fa-circle-check" style="color: rgb(11, 192, 76);"></i> Siège inclinable</li>
+        </ul>
+      </div>
+
+      <!-- Première -->
+      <div class="pricing-card reveal">
+        <p class="pricing-card__name">Première</p>
+        <p class="pricing-card__desc">L'excellence absolue.</p>
+        <p class="pricing-card__from">À PARTIR DE</p>
+        <p class="pricing-card__price">
+          <span class="count-up" data-target="{{ prix_min_premiere|default:900000 }}">0</span> <small>FCFA</small>
+        </p>
+        <ul class="pricing-features">
+          <li><i class="fa-solid fa-circle-check" style="color: rgb(11, 192, 76);"></i> Bagages illimités</li>
+          <li><i class="fa-solid fa-circle-check" style="color: rgb(11, 192, 76);"></i> Chef à bord</li>
+          <li><i class="fa-solid fa-circle-check" style="color: rgb(11, 192, 76);"></i> Suite privée</li>
+          <li><i class="fa-solid fa-circle-check" style="color: rgb(11, 192, 76);"></i> Chauffeur privé inclus</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+{# ── GRILLE TARIFAIRE PAR DESTINATION ──────────────────────── #}
+<section class="section">
+  <div class="section__inner">
+    <h2 class="section__title">Tarifs par destination</h2>
+    <p class="section__subtitle">
+      Tous nos prix sont calculés à partir de nos vols actifs et mis à jour en temps réel.
+    </p>
+
+    {% if vols %}
+    <div class="dest-tarif-grid">
+      {% for vol in vols %}
+      <div class="dest-tarif-card reveal">
+        <div class="dest-tarif-card__header">
+          <div class="dest-tarif-card__route">
+            {% comment %} <span class="material-symbols-outlined">flight_takeoff</span> {% endcomment %}
+            <i class="fa-solid fa-plane-departure" style="color: rgb(255, 212, 59);"></i>
+            {{ vol.code_depart }} → {{ vol.code_arrivee }}
+          </div>
+          <div class="dest-tarif-card__city">{{ vol.ville_arrivee }}</div>
+          <div class="dest-tarif-card__compagnie">{{ vol.compagnie.nom }} · {{ vol.numero_vol }}</div>
+        </div>
+        <div class="dest-tarif-card__body">
+
+          <div class="dest-tarif-row">
+            <span class="dest-tarif-row__label">Économie</span>
+            <span class="dest-tarif-row__price"><span class="count-up" data-target="{{ vol.prix_economique|floatformat:0 }}">0</span> FCFA</span>
+          </div>
+
+          {% if vol.prix_affaires %}
+          <div class="dest-tarif-row">
+            <span class="dest-tarif-row__label">Affaires</span>
+            <span class="dest-tarif-row__price dest-tarif-row__price--highlight"><span class="count-up" data-target="{{ vol.prix_affaires|floatformat:0 }}">0</span> FCFA</span>
+          </div>
+          {% endif %}
+
+          {% if vol.prix_premiere %}
+          <div class="dest-tarif-row">
+            <span class="dest-tarif-row__label">Première</span>
+            <span class="dest-tarif-row__price"><span class="count-up" data-target="{{ vol.prix_premiere|floatformat:0 }}">0</span> FCFA</span>
+          </div>
+          {% endif %}
+
+          <a href="{% url 'detail_vol' vol.id %}" class="dest-tarif-card__cta">Voir ce vol</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-tarifs">
+      <i class="fa-solid fa-plane" style="font-size:3rem; opacity:0.4;"></i>
+      <p style="margin-top:1rem; font-family:'DM Sans',sans-serif;">Aucun vol disponible pour le moment. Revenez bientôt !</p>
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+
+{# ── POURQUOI NOS TARIFS ───────────────────────────────────── #}
+<section class="section" style="background:#f2f4f7;">
+  <div class="section__inner">
+    <h2 class="section__title">Pourquoi nos tarifs sont avantageux</h2>
+    <p class="section__subtitle">Une transparence totale, du premier clic jusqu'à l'embarquement.</p>
+
+    <div class="why-grid">
+      <div class="why-card reveal">
+        <div class="why-icon"><i class="fa-solid fa-eye" style="color: rgb(255, 212, 59);"></i></div>
+        <h4>Aucun frais caché</h4>
+        <p>Le prix affiché est le prix final. Taxes et frais inclus.</p>
+      </div>
+      <div class="why-card reveal">
+        <div class="why-icon"><i class="fa-solid fa-face-smile" style="color: rgb(255, 212, 59);"></i></div>
+        <i class="fa-solid fa-badge-check" style="color: rgb(255, 212, 59);"></i>
+        <h4>Meilleur prix garanti</h4>
+        <p>Nous négocions directement avec les compagnies pour vous.</p>
+      </div>
+      <div class="why-card reveal">
+        <div class="why-icon"><i class="fa-solid fa-credit-card" style="color: rgb(255, 212, 59);"></i></div>
+        <h4>Paiement flexible</h4>
+        <p>Carte bancaire, Orange Money, Wave ou MTN MoMo acceptés.</p>
+      </div>
+      <div class="why-card reveal">
+        <div class="why-icon"><i class="fa-solid fa-headset" style="color: rgb(255, 212, 59);"></i></div>
+        <h4>Support dédié</h4>
+        <p>Notre équipe vous accompagne 24/7 pour toute question tarifaire.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ── CTA FINAL ─────────────────────────────────────────────── #}
+<section class="section">
+  <div class="section__inner">
+    <div class="cta-final reveal">
+      <h2>Besoin d'un devis sur mesure ?</h2>
+      <p>Vol de groupe, voyage d'affaires ou jet privé — contactez-nous pour une offre personnalisée.</p>
+      <div class="cta-buttons">
+        <a href="{% url 'liste_vols' %}" class="btn-gold ripple-trigger" style="text-decoration:none;">
+          <i class="fa-solid fa-search" style="font-size:18px;"></i>
+          Rechercher un vol
+        </a>
+        <a href="https://wa.me/237670574973?text=Bonjour%20SD%20Travel%2C%20je%20voudrais%20un%20devis%20personnalis%C3%A9."
+           target="_blank" rel="noopener" class="btn-navy ripple-trigger" style="text-decoration:none;">
+          <i class="fa-solid fa-comments" style="font-size:18px;"></i>
+          Demander un devis
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // --- Compteur animé sur les prix ---
+  function animateCount(el) {
+    var target = parseFloat(el.dataset.target) || 0;
+    if (prefersReducedMotion) {
+      el.textContent = Math.round(target).toLocaleString('fr-FR');
+      return;
+    }
+    var duration = 1400;
+    var start = performance.now();
+    function tick(now) {
+      var progress = Math.min((now - start) / duration, 1);
+      var eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = Math.round(target * eased).toLocaleString('fr-FR');
+      if (progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  // --- Révélation au scroll (cascade sur cards) + déclenchement des compteurs ---
+  var revealEls = document.querySelectorAll('.reveal');
+  if (prefersReducedMotion || !('IntersectionObserver' in window)) {
+    revealEls.forEach(function (el) {
+      el.classList.add('is-visible');
+      el.querySelectorAll('.count-up').forEach(animateCount);
+    });
+  } else {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          entry.target.querySelectorAll('.count-up').forEach(animateCount);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.2, rootMargin: '0px 0px -40px 0px' });
+    revealEls.forEach(function (el) { observer.observe(el); });
+  }
+
+  // --- Effet ripple au clic sur les boutons du CTA final ---
+  document.querySelectorAll('.ripple-trigger').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      var rect = btn.getBoundingClientRect();
+      var ripple = document.createElement('span');
+      ripple.className = 'ripple';
+      ripple.style.left = (e.clientX - rect.left) + 'px';
+      ripple.style.top = (e.clientY - rect.top) + 'px';
+      btn.appendChild(ripple);
+      setTimeout(function () { ripple.remove(); }, 650);
+    });
+  });
+})();
+</script>
+
+{% endblock %}

@@ -1,0 +1,359 @@
+{% extends 'base_admin.html' %}
+{% load static %}
+{% block title %}SD Admin — Gestion des Réservations{% endblock %}
+
+{% block extra_css %}
+<style>
+  .glass-panel { background:rgba(255,255,255,0.8); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.1); }
+  .shimmer-btn:hover { background:linear-gradient(135deg,#E2A829 0%,#ffdea6 50%,#E2A829 100%); background-size:200% 200%; animation:shimmer 2s linear infinite; }
+  @keyframes shimmer { 0%{background-position:100% 0%} 100%{background-position:-100% 0%} }
+  .modal-enter { opacity:0; transform:scale(0.95); }
+  .modal-active { opacity:1; transform:scale(1); transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+
+<!-- Header -->
+<div class="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end px-4 sm:px-margin-desktop pt-6 sm:pt-10 mb-stack-lg">
+  <div>
+    <h1 class="font-display-lg text-2xl sm:text-display-lg text-primary tracking-tight">Gestion des Réservations</h1>
+    <p class="text-on-surface-variant font-body-md mt-2 text-sm sm:text-base">Suivi en temps réel des réservations élites SD Travel.</p>
+  </div>
+  <div class="flex items-center gap-4">
+    <a href="?{% if statut_filtre and statut_filtre != 'all' %}statut={{ statut_filtre }}&{% endif %}{% if q %}q={{ q|urlencode }}&{% endif %}export=csv"
+       class="flex items-center justify-center gap-2 border border-primary text-primary px-4 py-2 rounded-lg font-label-caps hover:bg-primary hover:text-white transition-all whitespace-nowrap">
+      <i class="fa-solid fa-download"></i> Exporter (CSV)
+    </a>
+  </div>
+</div>
+
+<div class="px-4 sm:px-margin-desktop pb-stack-lg">
+
+  {% if messages %}
+  <div class="mb-6 space-y-2">
+    {% for message in messages %}
+    <div class="px-4 py-3 rounded-xl text-sm font-medium
+      {% if message.tags == 'success' %}bg-green-100 text-green-800
+      {% elif message.tags == 'error' %}bg-red-100 text-red-800
+      {% else %}bg-blue-100 text-blue-800{% endif %}">
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Filtres + Revenus -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter mb-stack-md">
+
+    <div class="lg:col-span-8 bg-surface-container-lowest p-4 sm:p-6 rounded-xl shadow-[0_4px_20px_rgba(13,27,42,0.05)] flex flex-col gap-4">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="font-label-caps text-on-surface-variant mr-2 text-xs sm:text-sm">Filtrer :</span>
+        <a href="?{% if q %}q={{ q|urlencode }}&{% endif %}statut=all"
+           class="px-4 sm:px-6 py-2 rounded-full font-label-caps text-xs sm:text-sm transition-all {% if statut_filtre == 'all' %}bg-secondary-fixed text-on-secondary-fixed{% else %}hover:bg-surface-container-high text-on-surface-variant{% endif %}">
+          Toutes
+        </a>
+        <a href="?{% if q %}q={{ q|urlencode }}&{% endif %}statut=en_attente"
+           class="px-4 sm:px-6 py-2 rounded-full font-label-caps text-xs sm:text-sm transition-all {% if statut_filtre == 'en_attente' %}bg-secondary-fixed text-on-secondary-fixed{% else %}hover:bg-surface-container-high text-on-surface-variant{% endif %}">
+          En attente
+        </a>
+        <a href="?{% if q %}q={{ q|urlencode }}&{% endif %}statut=confirmee"
+           class="px-4 sm:px-6 py-2 rounded-full font-label-caps text-xs sm:text-sm transition-all {% if statut_filtre == 'confirmee' %}bg-secondary-fixed text-on-secondary-fixed{% else %}hover:bg-surface-container-high text-on-surface-variant{% endif %}">
+          Confirmées
+        </a>
+        <a href="?{% if q %}q={{ q|urlencode }}&{% endif %}statut=billet_emis"
+           class="px-4 sm:px-6 py-2 rounded-full font-label-caps text-xs sm:text-sm transition-all {% if statut_filtre == 'billet_emis' %}bg-secondary-fixed text-on-secondary-fixed{% else %}hover:bg-surface-container-high text-on-surface-variant{% endif %}">
+          Billet émis
+        </a>
+        <a href="?{% if q %}q={{ q|urlencode }}&{% endif %}statut=annulee"
+           class="px-4 sm:px-6 py-2 rounded-full font-label-caps text-xs sm:text-sm transition-all {% if statut_filtre == 'annulee' %}bg-secondary-fixed text-on-secondary-fixed{% else %}hover:bg-surface-container-high text-on-surface-variant{% endif %}">
+          Annulées
+        </a>
+      </div>
+      <form method="GET" class="relative w-full">
+        {% if statut_filtre and statut_filtre != 'all' %}
+        <input type="hidden" name="statut" value="{{ statut_filtre }}">
+        {% endif %}
+        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-outline"></i>
+        <input name="q" value="{{ q }}"
+               class="w-full pl-10 pr-4 py-2.5 border border-outline-variant bg-surface-container-low rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary font-body-md outline-none text-sm"
+               placeholder="Rechercher un client, une référence ou un n° de vol..." type="text">
+      </form>
+    </div>
+
+    <div class="lg:col-span-4 bg-primary-container p-6 rounded-xl shadow-xl flex items-center justify-between text-white">
+      <div class="min-w-0">
+        <p class="font-label-caps text-secondary-fixed opacity-80 text-xs sm:text-sm">Revenus du Mois</p>
+        <h2 class="font-price-display text-xl sm:text-display-lg-mobile mt-2 truncate">{{ revenus_mensuels|floatformat:0 }} FCFA</h2>
+      </div>
+      <div class="h-12 w-12 shrink-0 rounded-full bg-secondary-fixed/20 flex items-center justify-center">
+        <i class="fa-solid fa-arrow-trend-up text-secondary-fixed"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tableau -->
+  <div class="bg-surface-container-lowest rounded-xl shadow-[0_4px_20px_rgba(13,27,42,0.05)] overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[920px] text-left">
+        <thead>
+          <tr class="border-b border-surface-container-high bg-surface-container-low">
+            <th class="px-4 sm:px-6 py-4 font-label-caps text-on-surface-variant whitespace-nowrap">Réf</th>
+            <th class="px-4 sm:px-6 py-4 font-label-caps text-on-surface-variant whitespace-nowrap">Client</th>
+            <th class="px-4 sm:px-6 py-4 font-label-caps text-on-surface-variant whitespace-nowrap">Vol</th>
+            <th class="px-4 sm:px-6 py-4 font-label-caps text-on-surface-variant whitespace-nowrap">Classe</th>
+            <th class="px-4 sm:px-6 py-4 font-label-caps text-on-surface-variant whitespace-nowrap">Date Rés.</th>
+            <th class="px-4 sm:px-6 py-4 font-label-caps text-on-surface-variant whitespace-nowrap">Montant</th>
+            <th class="px-4 sm:px-6 py-4 font-label-caps text-on-surface-variant whitespace-nowrap">Statut</th>
+            <th class="px-4 sm:px-6 py-4 font-label-caps text-on-surface-variant text-right whitespace-nowrap">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-surface-container-high">
+
+          {% for r in reservations %}
+          {% with passager=r.passagers.first %}
+          <tr class="hover:bg-surface-container-low/50 transition-colors group">
+            <td class="px-4 sm:px-6 py-5 font-label-caps text-primary whitespace-nowrap">#{{ r.reference }}</td>
+            <td class="px-4 sm:px-6 py-5">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 shrink-0 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed font-bold text-xs">
+                  {{ r.client.first_name|first }}{{ r.client.last_name|first }}
+                </div>
+                <div class="min-w-0">
+                  <p class="font-body-md font-bold text-on-surface truncate">{{ r.client.get_full_name }}</p>
+                  <p class="text-xs text-on-surface-variant truncate">{{ r.client.email }}</p>
+                </div>
+              </div>
+            </td>
+            <td class="px-4 sm:px-6 py-5 whitespace-nowrap">
+              <div class="flex items-center gap-2">
+                <i class="fa-solid fa-plane-departure text-secondary text-sm"></i>
+                <span class="font-body-md text-on-surface">{{ r.vol.code_depart }} → {{ r.vol.code_arrivee }}</span>
+              </div>
+              <p class="text-[10px] text-on-surface-variant mt-0.5">{{ r.vol.numero_vol }}</p>
+            </td>
+            <td class="px-4 sm:px-6 py-5 whitespace-nowrap">
+              <span class="text-xs font-label-caps text-on-surface-variant">{{ r.get_classe_display }}</span>
+              <p class="text-[10px] text-on-surface-variant">{{ r.nombre_passagers }} passager{{ r.nombre_passagers|pluralize }}</p>
+            </td>
+            <td class="px-4 sm:px-6 py-5 font-body-md text-on-surface-variant whitespace-nowrap">{{ r.date_reservation|date:"d M Y" }}</td>
+            <td class="px-4 sm:px-6 py-5 font-price-display text-primary whitespace-nowrap">{{ r.prix_total|floatformat:0 }} FCFA</td>
+            <td class="px-4 sm:px-6 py-5">
+              {% if r.statut == 'confirmee' %}
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-[10px] font-label-caps whitespace-nowrap">
+                  <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> CONFIRMÉE
+                </span>
+              {% elif r.statut == 'billet_emis' %}
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-700 text-[10px] font-label-caps whitespace-nowrap">
+                  <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> BILLET ÉMIS
+                </span>
+              {% elif r.statut == 'en_attente' %}
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-[10px] font-label-caps whitespace-nowrap">
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> EN ATTENTE
+                </span>
+              {% else %}
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 text-red-700 text-[10px] font-label-caps whitespace-nowrap">
+                  <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> ANNULÉE
+                </span>
+              {% endif %}
+            </td>
+            <td class="px-4 sm:px-6 py-5 text-right">
+              <div class="flex items-center justify-end gap-1">
+                <!-- Voir détail -->
+                <button type="button"
+                        onclick="openDetailModal('{{ r.reference }}', '{{ r.client.get_full_name|escapejs }}', '{{ r.client.email|escapejs }}', '{{ r.vol.ville_depart|escapejs }}', '{{ r.vol.ville_arrivee|escapejs }}', '{{ r.vol.code_depart }}', '{{ r.vol.code_arrivee }}', '{{ r.vol.date_depart|date:"d M Y, H:i" }}', '{{ r.vol.date_arrivee|date:"d M Y, H:i" }}', '{{ r.get_classe_display }}', {{ r.nombre_passagers }}, '{{ r.prix_total|floatformat:0 }}', '{{ r.get_statut_display }}', '{% if passager %}{{ passager.prenom|escapejs }} {{ passager.nom|escapejs }}{% else %}—{% endif %}', '{% if passager %}{{ passager.numero_passeport|escapejs }}{% else %}—{% endif %}', '{% if r.paiement %}{{ r.paiement.get_methode_display }} — {{ r.paiement.get_statut_display }}{% else %}Aucun paiement enregistré{% endif %}')"
+                        class="p-2 hover:bg-secondary-fixed/20 rounded-lg text-outline hover:text-secondary transition-all" title="Détails">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+
+                {% if r.statut == 'en_attente' %}
+                <form method="POST" action="{% url 'admin_changer_statut' r.reference %}" class="inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="statut" value="confirmee">
+                  <button type="submit" class="p-2 hover:bg-blue-50 rounded-lg text-blue-600 transition-all" title="Confirmer">
+                    <i class="fa-solid fa-circle-check"></i>
+                  </button>
+                </form>
+                {% endif %}
+
+                {% if r.statut == 'confirmee' %}
+                <form method="POST" action="{% url 'admin_changer_statut' r.reference %}" class="inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="statut" value="billet_emis">
+                  <button type="submit" class="p-2 hover:bg-green-50 rounded-lg text-green-600 transition-all" title="Émettre le billet">
+                    <i class="fa-solid fa-ticket"></i>
+                  </button>
+                </form>
+                {% endif %}
+
+                {% if r.statut == 'en_attente' or r.statut == 'confirmee' %}
+                <form method="POST" action="{% url 'admin_changer_statut' r.reference %}" class="inline"
+                      onsubmit="return confirm('Annuler la réservation {{ r.reference }} ?');">
+                  {% csrf_token %}
+                  <input type="hidden" name="statut" value="annulee">
+                  <button type="submit" class="p-2 hover:bg-red-50 rounded-lg text-red-600 transition-all" title="Annuler">
+                    <i class="fa-solid fa-circle-xmark"></i>
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endwith %}
+          {% empty %}
+          <tr>
+            <td colspan="8" class="px-6 py-16 text-center text-on-surface-variant">
+              <i class="fa-solid fa-ticket text-4xl mb-4 block opacity-30"></i>
+              <p class="font-label-caps text-sm">Aucune réservation trouvée</p>
+              <p class="text-xs mt-1">Essayez un autre filtre ou une autre recherche.</p>
+            </td>
+          </tr>
+          {% endfor %}
+
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="px-4 sm:px-6 py-4 flex flex-col sm:flex-row gap-3 justify-between items-center bg-surface-container-low">
+      <p class="text-xs font-label-caps text-on-surface-variant text-center sm:text-left">
+        Affichage {{ page_obj.start_index }}-{{ page_obj.end_index }} sur {{ total }} réservation{{ total|pluralize }}
+      </p>
+      {% if page_obj.paginator.num_pages > 1 %}
+      <div class="flex gap-2 flex-wrap justify-center">
+        {% if page_obj.has_previous %}
+        <a href="?{% if statut_filtre and statut_filtre != 'all' %}statut={{ statut_filtre }}&{% endif %}{% if q %}q={{ q|urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}"
+           class="p-2 border border-outline-variant rounded-lg hover:bg-white transition-all">
+          <i class="fa-solid fa-chevron-left text-xs"></i>
+        </a>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+          {% if num == page_obj.number %}
+          <span class="px-3 py-1 rounded-lg bg-primary text-white font-label-caps text-sm">{{ num }}</span>
+          {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+          <a href="?{% if statut_filtre and statut_filtre != 'all' %}statut={{ statut_filtre }}&{% endif %}{% if q %}q={{ q|urlencode }}&{% endif %}page={{ num }}"
+             class="px-3 py-1 rounded-lg hover:bg-white font-label-caps text-sm">{{ num }}</a>
+          {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <a href="?{% if statut_filtre and statut_filtre != 'all' %}statut={{ statut_filtre }}&{% endif %}{% if q %}q={{ q|urlencode }}&{% endif %}page={{ page_obj.next_page_number }}"
+           class="p-2 border border-outline-variant rounded-lg hover:bg-white transition-all">
+          <i class="fa-solid fa-chevron-right text-xs"></i>
+        </a>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Modal Détail Réservation -->
+<div class="fixed inset-0 z-[100] hidden" id="detail-modal">
+  <div class="absolute inset-0 bg-primary-container/40 backdrop-blur-sm" onclick="closeDetailModal()"></div>
+  <div class="absolute bottom-0 sm:top-1/2 sm:left-1/2 left-0 right-0 sm:-translate-x-1/2 sm:-translate-y-1/2 w-full sm:max-w-2xl bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden modal-enter max-h-[90vh] overflow-y-auto" id="modal-content">
+
+    <div class="bg-primary-container p-5 sm:p-6 text-white flex justify-between items-center gap-3 sticky top-0">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="h-10 w-10 shrink-0 bg-secondary-container text-on-secondary-container rounded-full flex items-center justify-center">
+          <i class="fa-solid fa-ticket text-secondary-fixed"></i>
+        </div>
+        <div class="min-w-0">
+          <h3 class="font-headline-md truncate" id="modal-ref">Détails Réservation</h3>
+          <p class="text-on-primary-container text-xs font-label-caps uppercase tracking-widest truncate" id="modal-classe">—</p>
+        </div>
+      </div>
+      <button class="shrink-0 hover:rotate-90 transition-transform" onclick="closeDetailModal()">
+        <i class="fa-solid fa-times"></i>
+      </button>
+    </div>
+
+    <div class="p-5 sm:p-8 space-y-6 sm:space-y-8">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
+        <div>
+          <label class="block font-label-caps text-on-surface-variant mb-2 text-xs">Passager Principal</label>
+          <p class="font-body-lg font-bold text-primary" id="modal-passager">—</p>
+          <p class="text-on-surface-variant font-body-md mt-1 text-sm" id="modal-passport">—</p>
+        </div>
+        <div>
+          <label class="block font-label-caps text-on-surface-variant mb-2 text-xs">Client</label>
+          <p class="font-body-md font-bold text-on-surface" id="modal-client">—</p>
+          <p class="text-on-surface-variant text-sm mt-1" id="modal-email">—</p>
+        </div>
+      </div>
+
+      <!-- Itinéraire -->
+      <div class="relative py-4">
+        <div class="flex justify-between items-center gap-2 mb-4">
+          <div class="text-center min-w-0">
+            <p class="font-display-lg-mobile text-primary text-lg sm:text-2xl" id="modal-dep-code">—</p>
+            <p class="text-xs font-label-caps text-on-surface-variant truncate" id="modal-dep-ville">—</p>
+            <p class="font-body-md font-bold mt-1 text-xs sm:text-sm" id="modal-dep-date">—</p>
+          </div>
+          <div class="flex-1 px-2 sm:px-8 relative shrink-0">
+            <div class="h-[2px] bg-outline-variant w-full relative">
+              <div class="absolute left-1/2 -top-3 -translate-x-1/2 text-secondary rotate-90">
+                <i class="fa-solid fa-plane text-secondary-fixed"></i>
+              </div>
+            </div>
+          </div>
+          <div class="text-center min-w-0">
+            <p class="font-display-lg-mobile text-primary text-lg sm:text-2xl" id="modal-arr-code">—</p>
+            <p class="text-xs font-label-caps text-on-surface-variant truncate" id="modal-arr-ville">—</p>
+            <p class="font-body-md font-bold mt-1 text-xs sm:text-sm" id="modal-arr-date">—</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-surface-container-low p-4 rounded-xl border border-white flex flex-col sm:flex-row gap-3 justify-between sm:items-center">
+        <div>
+          <p class="text-xs font-label-caps text-on-surface-variant">Total T.T.C — <span id="modal-statut">—</span></p>
+          <p class="font-price-display text-lg sm:text-headline-md text-primary mt-1" id="modal-total">—</p>
+        </div>
+        <div>
+          <p class="text-xs font-label-caps text-on-surface-variant">Paiement</p>
+          <p class="font-body-md font-bold text-on-surface mt-1" id="modal-paiement">—</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function openDetailModal(ref, clientNom, clientEmail, depVille, arrVille, depCode, arrCode, depDate, arrDate, classe, nbPassagers, montant, statut, passagerNom, passeport, paiement) {
+    const modal = document.getElementById('detail-modal');
+    const content = document.getElementById('modal-content');
+
+    document.getElementById('modal-ref').textContent   = 'Réservation #' + ref;
+    document.getElementById('modal-classe').textContent = classe + ' • ' + nbPassagers + ' passager(s)';
+    document.getElementById('modal-client').textContent = clientNom;
+    document.getElementById('modal-email').textContent  = clientEmail;
+    document.getElementById('modal-passager').textContent = passagerNom;
+    document.getElementById('modal-passport').textContent = 'Passeport : ' + passeport;
+    document.getElementById('modal-dep-code').textContent  = depCode;
+    document.getElementById('modal-dep-ville').textContent = depVille;
+    document.getElementById('modal-dep-date').textContent  = depDate;
+    document.getElementById('modal-arr-code').textContent  = arrCode;
+    document.getElementById('modal-arr-ville').textContent = arrVille;
+    document.getElementById('modal-arr-date').textContent  = arrDate;
+    document.getElementById('modal-total').textContent  = montant + ' FCFA';
+    document.getElementById('modal-statut').textContent = statut;
+    document.getElementById('modal-paiement').textContent = paiement;
+
+    modal.classList.remove('hidden');
+    setTimeout(() => { content.classList.remove('modal-enter'); content.classList.add('modal-active'); }, 10);
+  }
+
+  function closeDetailModal() {
+    const modal = document.getElementById('detail-modal');
+    const content = document.getElementById('modal-content');
+    content.classList.remove('modal-active');
+    content.classList.add('modal-enter');
+    setTimeout(() => { modal.classList.add('hidden'); }, 300);
+  }
+</script>
+{% endblock %}

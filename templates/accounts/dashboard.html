@@ -1,0 +1,424 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}SD Travel - Mon Espace{% endblock %}
+
+{% block extra_css %}
+<style>
+
+  /* ── Reveal au scroll ──────────────────────────────────────── */
+  .fade-up {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity .65s ease, transform .65s ease;
+  }
+  .fade-up.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── Pills de navigation mobile (remplace la sidebar sur petit
+       écran — plus de bouton flottant qui chevauche le contenu) ── */
+  .mobile-nav-pill {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .6rem 1.1rem;
+    border-radius: 9999px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    white-space: nowrap;
+    flex-shrink: 0;
+    background: #f2f4f7;
+    color: #44474c;
+    text-decoration: none;
+    transition: background .2s ease, color .2s ease, transform .15s ease;
+  }
+  .mobile-nav-pill.active {
+    background: #0f1c2c;
+    color: #ffdea6;
+  }
+  .mobile-nav-pill:active { transform: scale(.96); }
+
+  /* ── Légère respiration sur la card "Total dépensé" ──────────── */
+  @keyframes statGlow {
+    0%, 100% { box-shadow: 0 8px 30px rgba(13,27,42,0.18); }
+    50%      { box-shadow: 0 8px 40px rgba(226,168,41,0.18); }
+  }
+  .stat-card-premium { animation: statGlow 4s ease-in-out infinite; }
+
+  /* ── Cards réservations (mobile) ──────────────────────────── */
+  .resa-card-mobile:active { background: #f7f8fa; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fade-up, .stat-card-premium {
+      animation: none !important;
+      transition: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex min-h-screen w-full" style='padding:15px'>
+
+  <!-- ── Sidebar (desktop uniquement) ────────────────────────── -->
+  <aside class="hidden md:flex fixed left-0 top-0 h-full w-64 bg-primary-container flex-col py-8 px-4 z-40">
+    <div class="mb-12 px-4">
+      <span class="font-display-lg text-secondary-fixed text-headline-md tracking-tight">SD Travel</span>
+      <p class="font-label-caps text-on-primary-container text-[10px] opacity-70">Mon Espace</p>
+    </div>
+    <nav class="flex-1 space-y-2">
+      <a class="flex items-center gap-3 bg-secondary-fixed/10 text-secondary-fixed rounded-lg px-4 py-3 transition-all"
+         href="{% url 'dashboard' %}">
+        <i class="fa-solid fa-chart-bar" style="color: rgb(255, 212, 59);"></i>
+        <span class="font-label-caps text-label-caps">Mes réservations</span>
+      </a>
+      <a class="flex items-center gap-3 text-on-primary-container hover:text-secondary-fixed px-4 py-3 transition-all hover:bg-white/5 rounded-lg"
+         href="{% url 'profil' %}">
+        <i class="fa-solid fa-user" style="color: rgb(255, 212, 59);"></i>
+        <span class="font-label-caps text-label-caps">Profil</span>
+      </a>
+    </nav>
+
+    <div class="mt-auto px-4 pt-8 border-t border-white/10">
+      <a class="flex items-center gap-3 text-error-container hover:opacity-80 transition-opacity px-4 py-3"
+         href="{% url 'logout' %}">
+        <i class="fa-solid fa-sign-out-alt" style="color: rgb(255, 212, 59);"></i>
+        <span class="font-label-caps text-label-caps">Déconnexion</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- ── Main Content ───────────────────────────────────────── -->
+  <main class="flex-1 md:ml-64 p-margin-mobile md:p-margin-desktop max-w-full">
+
+    <!-- Nav mobile : remplace la sidebar (et l'ancien bouton flottant) -->
+    <nav class="md:hidden flex items-center gap-2 overflow-x-auto pb-4 mb-2 -mx-1 px-1">
+      <a href="{% url 'dashboard' %}" class="mobile-nav-pill active">
+        <i class="fa-solid fa-chart-bar"></i> Réservations
+      </a>
+      <a href="{% url 'profil' %}" class="mobile-nav-pill">
+        <i class="fa-solid fa-user"></i> Profil
+      </a>
+      <a href="{% url 'logout' %}" class="mobile-nav-pill">
+        <i class="fa-solid fa-sign-out-alt"></i> Déconnexion
+      </a>
+    </nav>
+
+    <!-- Header -->
+    <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-stack-md mb-stack-lg fade-up">
+      <div class="space-y-1">
+        <h1 class="font-display-lg text-display-lg-mobile md:text-display-lg text-primary font-bold">
+          Bonjour {{ user.first_name }} 👋
+        </h1>
+        <p class="text-on-surface-variant font-body-md">Prêt pour votre prochaine aventure exclusive ?</p>
+      </div>
+      <a href="{% url 'liste_vols' %}"
+         class="bg-secondary-container text-on-secondary-container px-8 py-4 rounded-xl font-label-caps text-label-caps shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2 w-full md:w-auto justify-center">
+        <i class="fa-solid fa-plus text-[18px]"></i>
+        NOUVELLE RÉSERVATION
+      </a>
+    </header>
+
+    <!-- Stats Bento Grid -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+
+      <div class="bg-surface-container-lowest rounded-xl shadow-[0_4px_20px_rgba(13,27,42,0.05)] border border-surface-container transition-transform hover:scale-[1.02] p-6 fade-up">
+        <div class="flex justify-between items-start mb-4">
+          <i class="fa-solid fa-plane-departure text-on-tertiary-container bg-tertiary-fixed/30 p-2 rounded-lg"></i>
+          <span class="text-[10px] font-label-caps text-on-surface-variant">Ce mois</span>
+        </div>
+        <p class="font-label-caps text-on-surface-variant opacity-70 mb-1">VOYAGES EFFECTUÉS</p>
+        <h2 class="font-price-display text-[32px] text-primary">
+          <span class="count-up" data-target="{{ stats.voyages|default:0 }}">0</span>
+        </h2>
+      </div>
+
+      <div class="bg-surface-container-lowest rounded-xl shadow-[0_4px_20px_rgba(13,27,42,0.05)] border border-surface-container transition-transform hover:scale-[1.02] p-6 fade-up" style="transition-delay:80ms;">
+        <div class="flex justify-between items-start mb-4">
+          <i class="fa-solid fa-clock" style="color: rgb(246, 102, 33);"></i>
+          <span class="text-[10px] font-label-caps text-on-surface-variant">Active</span>
+        </div>
+        <p class="font-label-caps text-on-surface-variant opacity-70 mb-1">EN ATTENTE</p>
+        <h2 class="font-price-display text-[32px] text-primary">
+          <span class="count-up" data-target="{{ stats.en_attente|default:0 }}">0</span>
+        </h2>
+      </div>
+
+      <div class="bg-primary-container rounded-xl shadow-xl transition-transform hover:scale-[1.02] p-6 fade-up stat-card-premium" style="transition-delay:160ms;">
+    <div class="flex items-center gap-4 mb-4">
+        <!-- Icône à gauche avec couleur verte -->
+        <div class="bg-white/10 p-3 rounded-xl">
+            <i class="fa-solid fa-wallet text-emerald-500 text-xl"></i>
+        </div>
+        
+        <!-- Titre et valeur à droite de l'icône -->
+        <div>
+            <p class="font-label-caps text-on-primary-container opacity-70 mb-0">TOTAL DÉPENSÉ</p>
+            <h2 class="font-price-display text-[28px] text-secondary-fixed leading-tight">
+                <span class="count-up" data-target="{{ stats.total_depense|default:0|floatformat:0 }}">0</span> FCFA
+            </h2>
+        </div>
+    </div>
+</div>
+
+    </section>
+
+    <!-- Tableau / Cards des réservations -->
+    <section class="bg-surface-container-lowest rounded-xl shadow-[0_4px_20px_rgba(13,27,42,0.05)] overflow-hidden border border-surface-container fade-up" style="transition-delay:220ms;">
+      <div class="px-6 md:px-8 py-6 border-b border-surface-container flex justify-between items-center">
+        <h3 class="font-headline-md text-headline-md text-primary">Dernières Réservations</h3>
+      </div>
+
+      <!-- Desktop : tableau -->
+      <div class="hidden md:block overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-surface-container-low">
+              <th class="px-8 py-4 font-label-caps text-on-surface-variant opacity-70 text-[11px]">VOL / RÉFÉRENCE</th>
+              <th class="px-8 py-4 font-label-caps text-on-surface-variant opacity-70 text-[11px]">DESTINATION</th>
+              <th class="px-8 py-4 font-label-caps text-on-surface-variant opacity-70 text-[11px]">DATE</th>
+              <th class="px-8 py-4 font-label-caps text-on-surface-variant opacity-70 text-[11px]">CLASSE</th>
+              <th class="px-8 py-4 font-label-caps text-on-surface-variant opacity-70 text-[11px]">STATUT</th>
+              <th class="px-8 py-4"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-surface-container">
+
+            {% for reservation in reservations %}
+            <tr class="group hover:bg-surface-container-low transition-colors cursor-pointer"
+                onclick="location.href='{% url 'detail' reservation.id %}'">
+              <td class="px-8 py-6">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center text-primary">
+                    <i class="fa-solid fa-plane text-[20px]"></i>
+                  </div>
+                  <div>
+                    <p class="font-bold text-primary">{{ reservation.reference }}</p>
+                    <p class="text-xs text-on-surface-variant">{{ reservation.vol.compagnie }}</p>
+                  </div>
+                </div>
+              </td>
+              <td class="px-8 py-6">
+                <p class="font-medium text-primary">{{ reservation.vol.depart }} → {{ reservation.vol.destination }}</p>
+              </td>
+              <td class="px-8 py-6 text-on-surface-variant">{{ reservation.vol.date_depart|date:"d M. Y" }}</td>
+              <td class="px-8 py-6">
+                <span class="px-3 py-1 rounded-full bg-secondary-fixed/20 text-secondary text-[11px] font-label-caps">
+                  {{ reservation.classe|upper }}
+                </span>
+              </td>
+              <td class="px-8 py-6">
+                {% if reservation.statut == 'confirme' %}
+                  <div class="flex items-center gap-2 text-[#2e7d32]">
+                    <span class="w-2 h-2 rounded-full bg-[#2e7d32] animate-pulse"></span>
+                    <span class="font-label-caps text-[12px]">Confirmé</span>
+                  </div>
+                {% elif reservation.statut == 'en_attente' %}
+                  <div class="flex items-center gap-2 text-[#ed6c02]">
+                    <span class="w-2 h-2 rounded-full bg-[#ed6c02]"></span>
+                    <span class="font-label-caps text-[12px]">En attente</span>
+                  </div>
+                {% else %}
+                  <div class="flex items-center gap-2 text-error">
+                    <span class="w-2 h-2 rounded-full bg-error"></span>
+                    <span class="font-label-caps text-[12px]">Annulé</span>
+                  </div>
+                {% endif %}
+              </td>
+              <td class="px-8 py-6 text-right">
+                <i class="fa-solid fa-chevron-right text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity"></i>
+              </td>
+            </tr>
+
+            {% empty %}
+            <tr class="group hover:bg-surface-container-low transition-colors cursor-pointer">
+              <td class="px-8 py-6">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center text-primary">
+                    <i class="fa-solid fa-plane text-[20px]"></i>
+                  </div>
+                  <div>
+                    <p class="font-bold text-primary">SD-882</p>
+                    <p class="text-xs text-on-surface-variant">Air France Ops</p>
+                  </div>
+                </div>
+              </td>
+              <td class="px-8 py-6"><p class="font-medium text-primary">Paris (CDG) → New York (JFK)</p></td>
+              <td class="px-8 py-6 text-on-surface-variant">12 Oct. 2024</td>
+              <td class="px-8 py-6">
+                <span class="px-3 py-1 rounded-full bg-secondary-fixed/20 text-secondary text-[11px] font-label-caps">FIRST CLASS</span>
+              </td>
+              <td class="px-8 py-6">
+                <div class="flex items-center gap-2 text-[#2e7d32]">
+                  <span class="w-2 h-2 rounded-full bg-[#2e7d32] animate-pulse"></span>
+                  <span class="font-label-caps text-[12px]">Confirmé</span>
+                </div>
+              </td>
+              <td class="px-8 py-6 text-right">
+                <i class="fa-solid fa-chevron-right text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity"></i>
+              </td>
+            </tr>
+            {% endfor %}
+
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mobile : cards empilées (au lieu d'un tableau écrasé) -->
+      <div class="md:hidden divide-y divide-surface-container">
+
+        {% for reservation in reservations %}
+        <div class="resa-card-mobile p-5 flex items-center gap-4 transition-colors cursor-pointer"
+             onclick="location.href='{% url 'detail' reservation.id %}'">
+          <div class="w-11 h-11 rounded-full bg-primary-fixed flex items-center justify-center text-primary shrink-0">
+            <i class="fa-solid fa-plane text-[18px]"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2">
+              <p class="font-bold text-primary truncate">{{ reservation.reference }}</p>
+              <span class="px-2.5 py-0.5 rounded-full bg-secondary-fixed/20 text-secondary text-[10px] font-label-caps shrink-0">
+                {{ reservation.classe|upper }}
+              </span>
+            </div>
+            <p class="text-sm text-on-surface-variant truncate mt-0.5">
+              {{ reservation.vol.depart }} → {{ reservation.vol.destination }}
+            </p>
+            <div class="flex items-center justify-between mt-2">
+              <span class="text-xs text-on-surface-variant">{{ reservation.vol.date_depart|date:"d M. Y" }}</span>
+              {% if reservation.statut == 'confirme' %}
+                <span class="flex items-center gap-1.5 text-[#2e7d32] text-[11px] font-label-caps">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#2e7d32]"></span> Confirmé
+                </span>
+              {% elif reservation.statut == 'en_attente' %}
+                <span class="flex items-center gap-1.5 text-[#ed6c02] text-[11px] font-label-caps">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#ed6c02]"></span> En attente
+                </span>
+              {% else %}
+                <span class="flex items-center gap-1.5 text-error text-[11px] font-label-caps">
+                  <span class="w-1.5 h-1.5 rounded-full bg-error"></span> Annulé
+                </span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        {% empty %}
+        <div class="resa-card-mobile p-5 flex items-center gap-4">
+          <div class="w-11 h-11 rounded-full bg-primary-fixed flex items-center justify-center text-primary shrink-0">
+            <i class="fa-solid fa-plane text-[18px]"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2">
+              <p class="font-bold text-primary truncate">SD-882</p>
+              <span class="px-2.5 py-0.5 rounded-full bg-secondary-fixed/20 text-secondary text-[10px] font-label-caps shrink-0">FIRST CLASS</span>
+            </div>
+            <p class="text-sm text-on-surface-variant truncate mt-0.5">Paris (CDG) → New York (JFK)</p>
+            <div class="flex items-center justify-between mt-2">
+              <span class="text-xs text-on-surface-variant">12 Oct. 2024</span>
+              <span class="flex items-center gap-1.5 text-[#2e7d32] text-[11px] font-label-caps">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#2e7d32]"></span> Confirmé
+              </span>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+
+      </div>
+
+      <div class="p-6 border-t border-surface-container text-center">
+        <a href="#" class="text-on-tertiary-container font-label-caps text-label-caps hover:underline">
+          VOIR TOUTES LES RÉSERVATIONS
+        </a>
+      </div>
+    </section>
+
+    <!-- Banner Upgrade -->
+    <section class="mt-stack-lg relative overflow-hidden rounded-2xl min-h-[12rem] flex items-center px-6 md:px-12 py-8 group fade-up" style="transition-delay:300ms;">
+      <img class="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 brightness-50"
+           src="https://lh3.googleusercontent.com/aida-public/AB6AXuBixKV4Q8iZBC4rka951iBSV1KRhYZQ8pra8u_yNV8PxmjIo1G48QIXJVqgAxYQmGHhZBH2IwpxgQy4_JxecqvgazOPM0rUBINaUH6j3TWewKjyE0a2ouN9GnCcNt-QbQTqMZNkyxYAiD7-4PO1h7TZt7SWRZdb-U8B6hyhDJW4KypaYVrIH_XT98zc5FVlX2yMftO1yPXFN2QxdM3XFyijlHm4qWAuXHWYm-IMiqKyWGy3mR3zRaBwIc8rY2SV6SukJAAoj9CReXnX"
+           alt="Jet privé luxe">
+      {# REPLACE: {% static 'img/jet-cabin.jpg' %} #}
+      <div class="relative z-10 space-y-2">
+        <h4 class="text-white font-display-lg text-headline-md">Surclassement Platinum Disponible</h4>
+        <p class="text-white/80 font-body-md max-w-md">Bénéficiez d'un accès illimité à plus de 450 salons privés VIP à travers le monde.</p>
+        <button class="mt-4 text-white border-b-2 border-secondary-fixed-dim font-label-caps py-1 hover:text-secondary-fixed-dim transition-colors">
+          DÉCOUVRIR L'OFFRE
+        </button>
+      </div>
+    </section>
+
+    <!-- Footer interne -->
+    <footer class="mt-stack-lg py-8 border-t border-surface-container flex flex-col md:flex-row justify-between items-center gap-4">
+      <p class="font-body-md text-on-surface-variant opacity-60">© {% now "Y" %} SD Travel. Tous droits réservés.</p>
+      <div class="flex gap-6">
+        <a class="font-label-caps text-[11px] text-on-surface-variant hover:text-primary transition-colors" href="#">POLITIQUE DE CONFIDENTIALITÉ</a>
+        <a class="font-label-caps text-[11px] text-on-surface-variant hover:text-primary transition-colors" href="#">AIDE</a>
+        <a class="font-label-caps text-[11px] text-on-surface-variant hover:text-primary transition-colors" href="#">CONDITIONS</a>
+      </div>
+    </footer>
+
+  </main>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+
+  /* ── Effet clic léger sur les lignes du tableau (existant) ── */
+  document.querySelectorAll('tr.group').forEach(row => {
+    row.addEventListener('click', () => {
+      row.style.transform = 'scale(0.99)';
+      setTimeout(() => { row.style.transform = 'scale(1)'; }, 100);
+    });
+  });
+
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ── Compteurs animés sur les stats ──────────────────────── */
+  function animateCount(el) {
+    const target = parseFloat(el.dataset.target) || 0;
+    if (prefersReducedMotion) {
+      el.textContent = Math.round(target).toLocaleString('fr-FR');
+      return;
+    }
+    const duration = 1200;
+    const start = performance.now();
+    function tick(now) {
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = Math.round(target * eased).toLocaleString('fr-FR');
+      if (progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  /* ── Reveal au scroll + déclenchement des compteurs ──────── */
+  const revealEls = document.querySelectorAll('.fade-up');
+  if (prefersReducedMotion || !('IntersectionObserver' in window)) {
+    revealEls.forEach(el => {
+      el.classList.add('visible');
+      el.querySelectorAll('.count-up').forEach(animateCount);
+    });
+  } else {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          entry.target.querySelectorAll('.count-up').forEach(animateCount);
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: .12 });
+    revealEls.forEach(el => io.observe(el));
+  }
+
+})();
+</script>
+{% endblock %}
